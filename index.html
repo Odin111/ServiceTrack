@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Service Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+
+  <div class="app">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">&#9670;</div>
+        <span>ServiceTrack</span>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" onclick="switchView('dashboard')">
+          <span class="nav-icon">&#9632;</span> Dashboard
+        </button>
+        <button class="nav-item" onclick="switchView('employees')">
+          <span class="nav-icon">&#9632;</span> Employees
+        </button>
+        <button class="nav-item" onclick="switchView('notifications')">
+          <span class="nav-icon">&#9632;</span> Notifications
+          <span class="nav-badge" id="sidebarBadge"></span>
+        </button>
+        <div style="margin-top: 2rem;"></div> <!-- Spacer -->
+        <button class="nav-item" onclick="toggleTheme()" id="themeToggleBtn">
+          <span class="nav-icon" id="themeIcon">&#9789;</span> <span id="themeLabel">Dark Mode</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+
+      <!-- Dashboard View -->
+      <section id="view-dashboard" class="view active">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-sub">Overview of employee service milestones</p>
+          </div>
+        </div>
+        <div class="metrics-grid" id="metricsGrid"></div>
+        <div class="section-label">Upcoming milestones (next 90 days)</div>
+        <div id="upcomingList" class="upcoming-list"></div>
+      </section>
+
+      <!-- Employees View -->
+      <section id="view-employees" class="view">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Employees</h1>
+            <p class="page-sub">Manage employee records and service dates</p>
+          </div>
+          <button class="btn-primary" onclick="openModal()">+ Add Employee</button>
+        </div>
+        <div class="table-card">
+          <table class="emp-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Department</th>
+                <th>Start Date</th>
+                <th>Salary</th>
+                <th>Promotions</th>
+                <th>Years Served</th>
+                <th>Next Milestone</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="empTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Notifications View -->
+      <section id="view-notifications" class="view">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Notifications</h1>
+            <p class="page-sub">Admin alerts for service milestones</p>
+          </div>
+          <button class="btn-outline" onclick="clearAllDismissed()">Reset dismissed</button>
+        </div>
+        <div id="notifContainer"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Add Employee Modal -->
+  <div id="modal" class="modal-overlay" style="display:none;" onmousedown="closeModalOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Add Employee</h2>
+        <button class="modal-close" onclick="closeModal()">&#10005;</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="tab-btn active" id="tabManual" onclick="switchAddMode('manual')">Manual Entry</button>
+        <button class="tab-btn" id="tabCsv" onclick="switchAddMode('csv')">CSV Import</button>
+      </div>
+
+      <div class="modal-body" id="formManual">
+        <div class="form-group">
+          <label>Employee ID</label>
+          <input type="text" id="inputId" placeholder="e.g. EMP-001" />
+        </div>
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="inputName" placeholder="e.g. Juan dela Cruz" />
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" id="inputDept" placeholder="e.g. Finance" />
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="inputDate" />
+        </div>
+        <div class="form-group">
+          <label>Starting Salary (₱)</label>
+          <input type="number" id="inputSalary" placeholder="e.g. 50000" />
+        </div>
+      </div>
+
+      <div class="modal-body" id="formCsv" style="display: none;">
+        <div class="upload-zone">
+          <label for="csvFileInput" class="upload-label">
+            <span class="upload-icon">&#8681;</span>
+            <span class="upload-text">Select a CSV file to import employees</span>
+            <span class="upload-hint">Required columns: <strong>ID, Name, Department, Start Date, Salary</strong></span>
+          </label>
+          <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCsvUpload(event)" />
+        </div>
+      </div>
+
+      <div class="modal-footer" id="footerManual">
+        <button class="btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn-primary" onclick="addEmployee()">Save Employee</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Employee Modal -->
+  <div id="editModal" class="modal-overlay" style="display:none;" onmousedown="closeEditModalOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Edit Employee</h2>
+        <button class="modal-close" onclick="closeEditModal()">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Employee ID</label>
+          <input type="text" id="editId" />
+        </div>
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="editName" />
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" id="editDept" />
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="editDate" />
+        </div>
+        <div class="form-group">
+          <label>Starting Salary (₱)</label>
+          <input type="number" id="editSalary" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeEditModal()">Cancel</button>
+        <button class="btn-primary" onclick="submitEditEmployee()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Promote Employee Modal -->
+  <div id="promoteModal" class="modal-overlay" style="display:none;" onmousedown="closePromoteModalOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Promote Employee</h2>
+        <button class="modal-close" onclick="closePromoteModal()">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>New Salary (₱)</label>
+          <input type="number" id="inputNewSalary" placeholder="e.g. 65000" />
+          <div id="promoteHint" style="font-size: 13px; color: var(--amber); margin-top: 8px; font-weight: 500;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closePromoteModal()">Cancel</button>
+        <button class="btn-primary" onclick="submitPromotion()">Save Promotion</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Remove Employee Modal -->
+  <div id="removeModal" class="modal-overlay" style="display:none;" onmousedown="closeRemoveModalOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Remove Employee</h2>
+        <button class="modal-close" onclick="closeRemoveModal()">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to remove <strong id="removeEmpName">this
+            employee</strong>? <br><span style="color: var(--text-muted); font-size: 13px;">This action cannot be
+            undone.</span></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeRemoveModal()">Cancel</button>
+        <button class="btn-primary"
+          style="background: linear-gradient(135deg, var(--red), #dc2626); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);"
+          onclick="confirmRemoveEmployee()">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
