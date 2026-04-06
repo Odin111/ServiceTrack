@@ -144,7 +144,7 @@
            </div>
         </div>
 
-        <div class="tab-nav" style="display: flex; gap: 40px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+        <div class="tab-nav">
           <button class="tab-btn active" id="notifTabLoyalty" onclick="switchNotifTab('loyalty')">Loyalty Awards</button>
           <button class="tab-btn" id="notifTabSalary" onclick="switchNotifTab('salary')">Salary Updates</button>
           <button class="tab-btn" id="notifTabUpcoming" onclick="switchNotifTab('upcoming')">Upcoming Milestones</button>
@@ -439,17 +439,17 @@
              <input type="text" id="historySearchInput" class="custom-input" placeholder="Search in history..." oninput="handleHistorySearch()">
            </div>
         </div>
-        <div class="tab-nav island-tabs" style="display: flex; gap: 30px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <div class="tab-nav island-tabs">
           <button class="tab-btn active" id="histTabLoyalty" onclick="switchHistoryTab('loyalty')">Loyalty</button>
           <button class="tab-btn" id="histTabSalary" onclick="switchHistoryTab('salary')">Salary</button>
           <button class="tab-btn" id="histTabUpcoming" onclick="switchHistoryTab('upcoming')">Upcoming</button>
         </div>
         <div id="historyContainer" style="max-height: 400px; overflow-y: auto;"></div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer history-modal-footer">
          <button class="btn-outline" style="border-color: var(--teal); color: var(--teal);" onclick="openRestoreAllModal()">Restore all</button>
          <button class="btn-outline" style="border-color: var(--red); color: var(--red);" onclick="openClearHistoryModal()">Clear History</button>
-         <div style="flex:1;"></div>
+         <div class="spacer" style="flex:1;"></div>
          <button class="btn-primary" onclick="closeHistoryModal()">Close Island</button>
       </div>
     </div>

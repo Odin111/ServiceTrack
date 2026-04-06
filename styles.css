@@ -847,6 +847,20 @@ body {
 }
 
 /* ─── Modal Tabs ─── */
+.tab-nav {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.tab-nav.island-tabs {
+  gap: 30px;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+}
+
 .modal-tabs {
   display: flex;
   border-bottom: 1px solid var(--border-strong);
@@ -1195,6 +1209,12 @@ body {
     align-items: stretch;
   }
   
+  .tab-nav {
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
   .search-wrap, .sort-wrap {
     width: 100%;
     min-width: unset;
@@ -1211,6 +1231,19 @@ body {
   
   .form-group input, .custom-input, .custom-select {
     font-size: 16px; /* Prevent Safari zoom */
+  }
+
+  .history-modal-footer {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .history-modal-footer button {
+    width: 100%;
+  }
+
+  .history-modal-footer .spacer {
+    display: none;
   }
 }
 

@@ -382,11 +382,11 @@ function renderNotifItem(n, isHistoryView = false) {
         : `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; box-shadow: none;" onclick="dismissNotif('${n.key}')">Mark as recognized</button>`;
 
     const actionBlock = isHistoryView
-      ? `<div style="display:flex; gap: 8px; align-items:center; margin-top:12px;">
+      ? `<div style="display:flex; flex-wrap: wrap; gap: 8px; align-items:center; margin-top:12px;">
            <button class="notif-dismiss" style="color:var(--teal);" onclick="restoreNotif('${n.key}')">Restore</button>
            <button class="notif-dismiss" style="color:var(--red);" onclick="deleteNotifFromHistory('${n.key}')">Delete Permanently</button>
          </div>`
-      : `<div style="display:flex; gap: 8px; align-items:center;">
+      : `<div style="display:flex; flex-wrap: wrap; gap: 8px; align-items:center;">
            ${extraAction}
            <button class="notif-dismiss" onclick="dismissNotif('${n.key}')">Dismiss</button>
          </div>`;
@@ -403,11 +403,11 @@ function renderNotifItem(n, isHistoryView = false) {
     `;
   } else {
     const actionBlock = isHistoryView
-      ? `<div style="display:flex; gap:8px; margin-top:8px;">
+      ? `<div style="display:flex; flex-wrap: wrap; gap:8px; margin-top:8px;">
            <button class="notif-dismiss" style="color:var(--teal);" onclick="restoreNotif('${n.key}')">Restore</button>
            <button class="notif-dismiss" style="color:var(--red);" onclick="deleteNotifFromHistory('${n.key}')">Delete Permanently</button>
          </div>`
-      : `<div style="display:flex; gap:8px; margin-top:8px;">
+      : `<div style="display:flex; flex-wrap: wrap; gap:8px; margin-top:8px;">
            <button class="notif-dismiss" onclick="dismissNotif('${n.key}')">Dismiss</button>
          </div>`;
 
