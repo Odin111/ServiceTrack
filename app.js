@@ -386,7 +386,11 @@ function addEmployee() {
   if (!name || !date || !salaryInput) { alert('Please provide a name, start date, and starting salary.'); return; }
 
   const currentSalary = parseFloat(salaryInput) || 0;
-  const newEmp = { id: Date.now().toString(), employeeId: empIdText || '—', name, division: dept, position: currentPosition, eligibility, startDate: date, currentSalary, promotionCount: 0 };
+  const newEmp = { 
+    id: Date.now().toString(), employeeId: empIdText || '—', name, division: dept, 
+    position: currentPosition, positionHistory: [currentPosition], 
+    eligibility, startDate: date, currentSalary, promotionCount: 0 
+  };
 
   const oldEmp = checkDuplicate(newEmp);
   if (oldEmp) {
@@ -527,6 +531,10 @@ function submitDemote() {
   const emp = employees.find(e => e.id === currentDemoteEmpId);
   if (emp) {
     emp.promotionCount = (emp.promotionCount || 0) - 1;
+    if (emp.positionHistory && emp.positionHistory.length > 1) {
+      emp.positionHistory.pop();
+      emp.position = emp.positionHistory[emp.positionHistory.length - 1];
+    }
     saveEmployees(employees);
     renderAll();
   }
@@ -593,6 +601,10 @@ function submitPromotion() {
         return;
       }
 
+      if (!emp.positionHistory) {
+         emp.positionHistory = [emp.position || ''];
+      }
+      emp.positionHistory.push(newPosition);
       emp.position = newPosition;
       emp.promotionCount = (emp.promotionCount || 0) + 1;
       emp.lastPromotionDate = new Date().toISOString().split('T')[0];
@@ -752,6 +764,12 @@ function submitEditEmployee() {
   emp.position = position;
   emp.eligibility = eligibility;
   emp.startDate = date;
+
+  if (!emp.positionHistory) {
+    emp.positionHistory = [emp.position];
+  } else {
+    emp.positionHistory[emp.positionHistory.length - 1] = position;
+  }
 
   const newSalary = parseFloat(salaryInput) || 0;
   emp.currentSalary = newSalary;
@@ -926,6 +944,7 @@ function handleCsvUpload(event) {
         name,
         division: dept,
         position: pos,
+        positionHistory: [pos],
         eligibility: elig,
         startDate: formattedDate,
         currentSalary,
