@@ -373,10 +373,20 @@ function renderNotifications() {
     return;
   }
 
+  const RENDER_LIMIT = 50;
+  const limitedGroup = activeGroup.slice(0, RENDER_LIMIT);
+  const hiddenCount = activeGroup.length - limitedGroup.length;
+
+  let extraNote = '';
+  if (hiddenCount > 0) {
+    extraNote = `<div style="text-align:center; padding: 24px 16px; color: var(--text-muted); font-size: 14px;"><strong>+ ${hiddenCount} more ${activeTitle.toLowerCase()}</strong><br>Dismiss some active notifications to see the rest, or click "Dismiss all".</div>`;
+  }
+
   el.innerHTML = `
     <div class="notif-list">
-      ${activeGroup.map(n => renderNotifItem(n)).join('')}
+      ${limitedGroup.map(n => renderNotifItem(n)).join('')}
     </div>
+    ${extraNote}
   `;
 }
 
