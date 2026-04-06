@@ -75,7 +75,10 @@
             <h1 class="page-title">Employees</h1>
             <p class="page-sub">Manage employee records and service dates</p>
           </div>
-          <button class="btn-primary" onclick="openModal()">+ Add Employee</button>
+          <div style="display:flex; gap:12px;">
+            <button class="btn-outline" style="color:var(--red); border-color:var(--red);" onclick="openDeleteAllModal()">Delete All</button>
+            <button class="btn-primary" onclick="openModal()">+ Add Employee</button>
+          </div>
         </div>
         
         <div class="controls-row">
@@ -128,7 +131,15 @@
             <h1 class="page-title">Notifications</h1>
             <p class="page-sub">Admin alerts for service milestones</p>
           </div>
-          <button class="btn-outline" onclick="clearAllDismissed()">Reset dismissed</button>
+          <div style="display:flex; gap:12px;">
+            <button class="btn-outline" style="border-color: var(--text-muted); color: var(--text-muted);" onclick="openDismissAllModal()">Dismiss all</button>
+            <button class="btn-outline" onclick="clearAllDismissed()">Reset dismissed</button>
+          </div>
+        </div>
+        <div class="tab-nav" style="display: flex; gap: 40px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+          <button class="tab-btn active" id="notifTabLoyalty" onclick="switchNotifTab('loyalty')">Loyalty Awards</button>
+          <button class="tab-btn" id="notifTabSalary" onclick="switchNotifTab('salary')">Salary Updates</button>
+          <button class="tab-btn" id="notifTabUpcoming" onclick="switchNotifTab('upcoming')">Upcoming Milestones</button>
         </div>
         <div id="notifContainer"></div>
       </section>
@@ -192,7 +203,7 @@
           <label for="csvFileInput" class="upload-label">
             <span class="upload-icon">&#8681;</span>
             <span class="upload-text">Select a CSV file to import employees</span>
-            <span class="upload-hint">Required columns: <strong>ID, Name, Division, Position Title, Date of Last Promotion, Eligibility, Start Date, Salary</strong></span>
+            <span class="upload-hint">The importer seeks specific info and <strong>automatically ignores extra columns!</strong> <br>Required columns: <strong>ID, Name, Division, Position Title, Eligibility, Steps, Date of Last Promotion, Start Date</strong></span>
           </label>
           <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCsvUpload(event)" />
         </div>
@@ -345,6 +356,8 @@
         </div>
       </div>
       <div class="modal-footer">
+        <button class="btn-outline" style="border-color: var(--teal); color: var(--teal);" onclick="resolveDuplicate('addBoth')">Add Both</button>
+        <div style="flex:1;"></div>
         <button class="btn-outline" onclick="resolveDuplicate('keepOld')">Keep Old (Discard New)</button>
         <button class="btn-primary" onclick="resolveDuplicate('keepNew')">Overwrite With New</button>
       </div>
@@ -368,6 +381,38 @@
         <button class="btn-primary"
           style="background: linear-gradient(135deg, var(--red), #dc2626); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);"
           onclick="confirmRemoveEmployee()">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete All Modal -->
+  <div id="deleteAllModal" class="modal-overlay" style="display:none;" onmousedown="closeDeleteAllModalOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" style="color: var(--red);">Delete All Employees</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text); font-size: 15px;">Are you absolutely sure you want to delete <strong>ALL</strong> employee records? <br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">This action cannot be undone and will erase the entire database.</span></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeDeleteAllModal()">Cancel</button>
+        <button class="btn-primary" style="background: var(--red); border-color: var(--red);" onclick="confirmDeleteAll()">Yes, Delete Everything</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dismiss All Modal -->
+  <div id="dismissAllModal" class="modal-overlay" style="display:none;" onmousedown="closeDismissAllModalOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Dismiss All Notifications</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to dismiss all active notifications? <br><span style="color: var(--text-muted); font-size: 13px;">This will remove them from your current view.</span></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeDismissAllModal()">Cancel</button>
+        <button class="btn-primary" onclick="dismissAllNotifs()">Confirm Dismiss</button>
       </div>
     </div>
   </div>

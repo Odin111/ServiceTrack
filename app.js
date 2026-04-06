@@ -309,7 +309,11 @@ function renderNotifications() {
     return;
   }
 
-  el.innerHTML = `<div class="notif-list">${active.map(n => {
+  const loyaltyGroup = active.filter(n => n.type === 'milestone' && n.ntype !== 'salary');
+  const salaryGroup = active.filter(n => n.type === 'milestone' && n.ntype === 'salary');
+  const upcomingGroup = active.filter(n => n.type === 'upcoming');
+
+  function renderNotifItem(n) {
     if (n.type === 'milestone') {
       const isSalary = n.ntype === 'salary';
       const eventTitle = isSalary 
@@ -351,7 +355,44 @@ function renderNotifications() {
         </div>
       `;
     }
-  }).join('')}</div>`;
+  }
+
+  let activeGroup = loyaltyGroup;
+  let activeTitle = 'Loyalty Awards';
+  
+  if (currentNotifTab === 'salary') {
+    activeGroup = salaryGroup;
+    activeTitle = 'Salary Updates';
+  } else if (currentNotifTab === 'upcoming') {
+    activeGroup = upcomingGroup;
+    activeTitle = 'Upcoming Milestones';
+  }
+
+  if (activeGroup.length === 0) {
+    el.innerHTML = `<div class="notif-empty" style="margin-top: 12px;">No active ${activeTitle} at this time.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="notif-list">
+      ${activeGroup.map(n => renderNotifItem(n)).join('')}
+    </div>
+  `;
+}
+
+let currentNotifTab = 'loyalty';
+
+function switchNotifTab(tab) {
+  document.getElementById('notifTabLoyalty').classList.remove('active');
+  document.getElementById('notifTabSalary').classList.remove('active');
+  document.getElementById('notifTabUpcoming').classList.remove('active');
+  
+  if (tab === 'loyalty') document.getElementById('notifTabLoyalty').classList.add('active');
+  if (tab === 'salary') document.getElementById('notifTabSalary').classList.add('active');
+  if (tab === 'upcoming') document.getElementById('notifTabUpcoming').classList.add('active');
+  
+  currentNotifTab = tab;
+  renderNotifications();
 }
 
 function renderSidebarBadge() {
@@ -437,6 +478,27 @@ function confirmRemoveEmployee() {
   renderAll();
 }
 
+function openDeleteAllModal() {
+  document.getElementById('deleteAllModal').style.display = 'flex';
+}
+
+function closeDeleteAllModal() {
+  document.getElementById('deleteAllModal').style.display = 'none';
+}
+
+function closeDeleteAllModalOutside(e) {
+  if (e.target.id === 'deleteAllModal') closeDeleteAllModal();
+}
+
+function confirmDeleteAll() {
+  employees = [];
+  dismissed = [];
+  saveEmployees(employees);
+  saveDismissed(dismissed);
+  closeDeleteAllModal();
+  renderAll();
+}
+
 function dismissNotif(key) {
   if (!dismissed.includes(key)) dismissed.push(key);
   saveDismissed(dismissed);
@@ -447,6 +509,34 @@ function clearAllDismissed() {
   dismissed = [];
   saveDismissed(dismissed);
   renderAll();
+}
+
+function openDismissAllModal() {
+  document.getElementById('dismissAllModal').style.display = 'flex';
+}
+
+function closeDismissAllModal() {
+  document.getElementById('dismissAllModal').style.display = 'none';
+}
+
+function closeDismissAllModalOutside(e) {
+  if (e.target.id === 'dismissAllModal') closeDismissAllModal();
+}
+
+function dismissAllNotifs() {
+  const notifs = getNotifications();
+  let changed = false;
+  notifs.forEach(n => {
+    if (!n.dismissed && !dismissed.includes(n.key)) {
+      dismissed.push(n.key);
+      changed = true;
+    }
+  });
+  if (changed) {
+    saveDismissed(dismissed);
+    renderAll();
+  }
+  closeDismissAllModal();
 }
 
 // ─── View Switching ───────────────────────────────────────────────────────────
@@ -839,6 +929,9 @@ function resolveDuplicate(choice) {
       // Overwrite entirely, retaining the original ID so lists don't break
       employees[index] = { ...newEmp, id: oldEmp.id };
     }
+  } else if (choice === 'addBoth') {
+    // Inject the new employee alongside the old one
+    employees.push(newEmp);
   }
 
   processDuplicateQueue();
@@ -907,15 +1000,16 @@ function handleCsvUpload(event) {
     const eligIdx = headers.indexOf('eligibility');
     const dateIdx = headers.indexOf('start date');
     const salaryIdx = headers.indexOf('salary');
+    const stepsIdx = headers.indexOf('steps');
 
-    if (nameIdx === -1 || dateIdx === -1 || salaryIdx === -1 || promoDateIdx === -1) {
+    if (idIdx === -1 || nameIdx === -1 || deptIdx === -1 || posIdx === -1 || eligIdx === -1 || stepsIdx === -1 || promoDateIdx === -1 || dateIdx === -1) {
       const succ = document.getElementById('csvSuccess');
       if (succ) {
-         succ.textContent = "CSV must match these headers: ID, Name, Division, Position Title, Date of Last Promotion, Eligibility, Start Date, Salary.";
+         succ.textContent = "Error: CSV must include ID, Name, Division, Position Title, Eligibility, Steps, Date of Last Promotion, and Start Date.";
          succ.style.display = 'block';
          succ.style.background = 'var(--red)';
       } else {
-         alert("CSV must contain exactly these headers: ID, Name, Division, Position Title, Date of Last Promotion, Eligibility, Start Date, Salary.");
+         alert("Error: CSV must include ID, Name, Division, Position Title, Eligibility, Steps, Date of Last Promotion, and Start Date.");
       }
       return;
     }
@@ -937,6 +1031,8 @@ function handleCsvUpload(event) {
         const pd = new Date(rawPromoDate);
         if (!isNaN(pd.getTime())) formattedPromoDate = pd.toISOString().split('T')[0];
       }
+      const rawSteps = stepsIdx > -1 ? (row[stepsIdx] || '').trim() : '';
+      const parsedSteps = parseInt(rawSteps) || 0;
       const rawDate = dateIdx > -1 ? (row[dateIdx] || '').trim() : '';
       const rawSalary = salaryIdx > -1 ? (row[salaryIdx] || '').trim().replace(/[^0-9.-]+/g, "") : '';
 
@@ -963,7 +1059,7 @@ function handleCsvUpload(event) {
         eligibility: elig,
         startDate: formattedDate,
         currentSalary,
-        promotionCount: 0
+        promotionCount: parsedSteps
       };
 
       const oldEmp = checkDuplicate(newEmp);
