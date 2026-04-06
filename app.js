@@ -1177,8 +1177,10 @@ renderAll();
 window.addEventListener('scroll', function() {
   const btn = document.getElementById("scrollToTopBtn");
   if (!btn) return;
+  
+  const c = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
   // Show button if scrolled down 300px
-  if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+  if (c > 300) {
     btn.classList.add("visible");
   } else {
     btn.classList.remove("visible");
@@ -1186,7 +1188,7 @@ window.addEventListener('scroll', function() {
 });
 
 function fastScrollToTop() {
-  const c = document.documentElement.scrollTop || document.body.scrollTop;
+  const c = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
   if (c > 0) {
     window.requestAnimationFrame(fastScrollToTop);
     window.scrollTo(0, c - c / 4); // The divisor (4) controls speed. Lower = faster.
