@@ -10,6 +10,16 @@
   font-family: 'Outfit', system-ui, -apple-system, sans-serif;
 }
 
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-overflow-scrolling: touch;
+}
+
 :root {
   --bg-top: #f4f6fa;
   --bg-bottom: #e4e8f1;
@@ -150,6 +160,8 @@ body {
   bottom: 0;
   z-index: 10;
   transition: var(--transition);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .sidebar-brand {
@@ -251,7 +263,8 @@ body {
 
 .view {
   display: none;
-  animation: fadeIn 0.4s ease-out;
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity;
 }
 
 .view.active {
@@ -787,8 +800,9 @@ body {
   padding: 0;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
-  transform: scale(0.95);
+  transform: scale(0.95) translateZ(0);
   animation: fadeIn 0.3s forwards;
+  will-change: transform, opacity;
 }
 
 .modal-large {

@@ -1191,6 +1191,6 @@ function fastScrollToTop() {
   const c = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
   if (c > 0) {
     window.requestAnimationFrame(fastScrollToTop);
-    window.scrollTo(0, c - c / 4); // The divisor (4) controls speed. Lower = faster.
+    window.scrollTo(0, Math.floor(c - c / 2)); // The divisor (2) controls speed. Lower = faster.
   }
 }
