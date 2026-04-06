@@ -160,12 +160,8 @@ function formatCurrency(amount) {
 }
 
 function promotionBadge(count) {
-  if (!count || count === 0) return '<span class="badge badge-gray" style="font-weight:500">No promotion</span>';
-  let suffix = 'th';
-  if (count === 1) suffix = 'st';
-  else if (count === 2) suffix = 'nd';
-  else if (count === 3) suffix = 'rd';
-  return `<span class="badge badge-blue">${count}${suffix} promotion</span>`;
+  if (!count || count === 0) return '<span class="badge badge-gray" style="font-weight:500">Step 0</span>';
+  return `<span class="badge badge-blue">Step ${count}</span>`;
 }
 
 function statusBadge(years) {
@@ -272,10 +268,11 @@ function renderTable() {
         <td style="font-weight:500;">${emp.name}</td>
         <td style="color:var(--text-muted);">${emp.division || '—'}</td>
         <td style="font-weight:500;">${emp.position || '—'}</td>
+        <td style="color:var(--text-muted);">${emp.lastPromotionDate ? formatDate(emp.lastPromotionDate) : '—'}</td>
         <td style="color:var(--text-muted);">${emp.eligibility || '—'}</td>
         <td style="color:var(--text-muted);">${formatDate(emp.startDate)}</td>
         <td style="font-weight:600;">${formatCurrency(emp.currentSalary || 0)}</td>
-        <td>${promotionBadge(emp.promotionCount || 0)}<br><span style="font-size:11px;color:var(--text-hint);font-weight:500;">${emp.promotionCount > 0 ? (emp.lastPromotionDate ? 'Last: ' + formatDate(emp.lastPromotionDate) : 'Date Unrecorded') : ''}</span></td>
+        <td>${promotionBadge(emp.promotionCount || 0)}</td>
         <td>
           <div class="progress-wrap">
             <span style="font-weight:600;min-width:32px;">${years.toFixed(1)}</span>
@@ -389,6 +386,7 @@ function addEmployee() {
   const newEmp = { 
     id: Date.now().toString(), employeeId: empIdText || '—', name, division: dept, 
     position: currentPosition, positionHistory: [currentPosition], 
+    lastPromotionDate: '', lastPromotionDateHistory: [''],
     eligibility, startDate: date, currentSalary, promotionCount: 0 
   };
 
@@ -504,7 +502,7 @@ function openDemoteModal(id) {
 
   const currentCount = emp.promotionCount || 0;
   if (currentCount <= 0) {
-    alert('This employee has 0 promotions and cannot be demoted further.');
+    alert('This employee is at Step 0 and cannot be demoted further.');
     return;
   }
 
@@ -534,6 +532,10 @@ function submitDemote() {
     if (emp.positionHistory && emp.positionHistory.length > 1) {
       emp.positionHistory.pop();
       emp.position = emp.positionHistory[emp.positionHistory.length - 1];
+    }
+    if (emp.lastPromotionDateHistory && emp.lastPromotionDateHistory.length > 0) {
+      emp.lastPromotionDateHistory.pop();
+      emp.lastPromotionDate = emp.lastPromotionDateHistory.length > 0 ? emp.lastPromotionDateHistory[emp.lastPromotionDateHistory.length - 1] : '';
     }
     saveEmployees(employees);
     renderAll();
@@ -604,9 +606,12 @@ function submitPromotion() {
       if (!emp.positionHistory) {
          emp.positionHistory = [emp.position || ''];
       }
+      if (!emp.lastPromotionDateHistory) {
+         emp.lastPromotionDateHistory = [emp.lastPromotionDate || ''];
+      }
       emp.positionHistory.push(newPosition);
+      emp.lastPromotionDateHistory.push(new Date().toISOString().split('T')[0]);
       emp.position = newPosition;
-      emp.promotionCount = (emp.promotionCount || 0) + 1;
       emp.lastPromotionDate = new Date().toISOString().split('T')[0];
 
       saveEmployees(employees);
@@ -698,6 +703,7 @@ function submitSalaryUpdate() {
 
       emp.currentSalary = newSalary;
       emp.salaryHistory.push(newSalary);
+      emp.promotionCount = (emp.promotionCount || 0) + 1;
 
       if (currentSalaryNotifKey) {
         dismissNotif(currentSalaryNotifKey);
@@ -896,19 +902,20 @@ function handleCsvUpload(event) {
     const idIdx = headers.indexOf('id');
     const nameIdx = headers.indexOf('name');
     const deptIdx = headers.indexOf('division');
-    const posIdx = headers.indexOf('position');
+    const posIdx = headers.indexOf('position title');
+    const promoDateIdx = headers.indexOf('date of last promotion');
     const eligIdx = headers.indexOf('eligibility');
     const dateIdx = headers.indexOf('start date');
     const salaryIdx = headers.indexOf('salary');
 
-    if (nameIdx === -1 || dateIdx === -1 || salaryIdx === -1) {
+    if (nameIdx === -1 || dateIdx === -1 || salaryIdx === -1 || promoDateIdx === -1) {
       const succ = document.getElementById('csvSuccess');
       if (succ) {
-         succ.textContent = "CSV must exact exactly these headers: ID, Name, Division, Position, Eligibility, Start Date, Salary.";
+         succ.textContent = "CSV must match these headers: ID, Name, Division, Position Title, Date of Last Promotion, Eligibility, Start Date, Salary.";
          succ.style.display = 'block';
          succ.style.background = 'var(--red)';
       } else {
-         alert("CSV must contain exactly these headers: ID, Name, Division, Position, Eligibility, Start Date, Salary. (Check your spelling)");
+         alert("CSV must contain exactly these headers: ID, Name, Division, Position Title, Date of Last Promotion, Eligibility, Start Date, Salary.");
       }
       return;
     }
@@ -924,6 +931,12 @@ function handleCsvUpload(event) {
       const dept = deptIdx > -1 ? (row[deptIdx] || '').trim() : '';
       const pos = posIdx > -1 ? (row[posIdx] || '').trim() : '';
       const elig = eligIdx > -1 ? (row[eligIdx] || '').trim() : '';
+      const rawPromoDate = promoDateIdx > -1 ? (row[promoDateIdx] || '').trim() : '';
+      let formattedPromoDate = '';
+      if (rawPromoDate) {
+        const pd = new Date(rawPromoDate);
+        if (!isNaN(pd.getTime())) formattedPromoDate = pd.toISOString().split('T')[0];
+      }
       const rawDate = dateIdx > -1 ? (row[dateIdx] || '').trim() : '';
       const rawSalary = salaryIdx > -1 ? (row[salaryIdx] || '').trim().replace(/[^0-9.-]+/g, "") : '';
 
@@ -945,6 +958,8 @@ function handleCsvUpload(event) {
         division: dept,
         position: pos,
         positionHistory: [pos],
+        lastPromotionDate: formattedPromoDate,
+        lastPromotionDateHistory: [formattedPromoDate],
         eligibility: elig,
         startDate: formattedDate,
         currentSalary,

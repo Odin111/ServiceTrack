@@ -91,8 +91,8 @@
               <option value="div_asc">Sort by Division</option>
               <option value="years_desc">Sort by Years Served (High - Low)</option>
               <option value="years_asc">Sort by Years Served (Low - High)</option>
-              <option value="promo_desc">Sort by Promotion (High - Low)</option>
-              <option value="promo_asc">Sort by Promotion (Low - High)</option>
+              <option value="promo_desc">Sort by Step (High - Low)</option>
+              <option value="promo_asc">Sort by Step (Low - High)</option>
             </select>
           </div>
         </div>
@@ -105,10 +105,11 @@
                 <th>Name</th>
                 <th>Division</th>
                 <th>Position Title</th>
+                <th>Date of Last Promotion</th>
                 <th>Eligibility</th>
                 <th>Start Date</th>
                 <th>Salary</th>
-                <th>Promotions</th>
+                <th>Steps</th>
                 <th>Years Served</th>
                 <th>Next Milestone</th>
                 <th>Status</th>
@@ -191,7 +192,7 @@
           <label for="csvFileInput" class="upload-label">
             <span class="upload-icon">&#8681;</span>
             <span class="upload-text">Select a CSV file to import employees</span>
-            <span class="upload-hint">Required columns: <strong>ID, Name, Division, Position, Eligibility, Start Date, Salary</strong></span>
+            <span class="upload-hint">Required columns: <strong>ID, Name, Division, Position Title, Date of Last Promotion, Eligibility, Start Date, Salary</strong></span>
           </label>
           <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCsvUpload(event)" />
         </div>
@@ -303,7 +304,7 @@
         <h2 class="modal-title">Demote Employee</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 15px;">Are you sure you want to demote <strong id="demoteEmpName">this employee</strong>? <br><span style="color: var(--text-muted); font-size: 13px;">This will reduce their promotion count.</span></p>
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to demote <strong id="demoteEmpName">this employee</strong>? <br><span style="color: var(--text-muted); font-size: 13px;">This will reverse their job title and reduce their Step count.</span></p>
       </div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeDemoteModal()">Cancel</button>
