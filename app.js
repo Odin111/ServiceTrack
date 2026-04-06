@@ -61,6 +61,34 @@ function getPastMilestones(years) {
   return milestones;
 }
 
+function nextSalaryMilestone(years) {
+  const intervals = Math.floor(years / 3);
+  const next = (intervals + 1) * 3;
+  return { milestone: next, label: `${next}-year Salary Adjustment` };
+}
+
+function getPastSalaryMilestones(years) {
+  const milestones = [];
+  let m = 3;
+  while (m <= Math.floor(years)) { milestones.push(m); m += 3; }
+  return milestones;
+}
+
+function getSoonestEvent(startDate) {
+  const yrs = yearsWorked(startDate);
+  const nextL = nextMilestone(yrs);
+  const daysL = daysUntilMilestone(startDate, nextL.milestone);
+  
+  const nextS = nextSalaryMilestone(yrs);
+  const daysS = daysUntilMilestone(startDate, nextS.milestone);
+
+  if (daysS < daysL) {
+    return { ...nextS, daysLeft: daysS, type: 'salary' };
+  } else {
+    return { ...nextL, daysLeft: daysL, type: 'loyalty' };
+  }
+}
+
 function progressToNext(years) {
   if (years < 10) return (years / 10) * 100;
   const above = years - 10;
@@ -74,18 +102,30 @@ function getNotifications() {
   employees.forEach(emp => {
     const years = yearsWorked(emp.startDate);
 
-    // Past milestones (reached but not yet dismissed)
+    // ─── Loyalty Milestones ───
     getPastMilestones(years).forEach(m => {
       const key = `${emp.id}_milestone_${m}`;
-      notifs.push({ type: 'milestone', emp, milestone: m, key, dismissed: dismissed.includes(key) });
+      notifs.push({ type: 'milestone', emp, milestone: m, key, dismissed: dismissed.includes(key), ntype: 'loyalty' });
     });
 
-    // Upcoming within 90 days
-    const next = nextMilestone(years);
-    const days = daysUntilMilestone(emp.startDate, next.milestone);
-    if (days > 0 && days <= 90) {
-      const key = `${emp.id}_upcoming_${next.milestone}`;
-      notifs.push({ type: 'upcoming', emp, milestone: next.milestone, daysLeft: days, key, dismissed: dismissed.includes(key) });
+    const nextL = nextMilestone(years);
+    const daysL = daysUntilMilestone(emp.startDate, nextL.milestone);
+    if (daysL > 0 && daysL <= 90) {
+      const key = `${emp.id}_upcoming_${nextL.milestone}`;
+      notifs.push({ type: 'upcoming', emp, milestone: nextL.milestone, daysLeft: daysL, key, dismissed: dismissed.includes(key), ntype: 'loyalty' });
+    }
+
+    // ─── Salary Milestones ───
+    getPastSalaryMilestones(years).forEach(m => {
+      const key = `${emp.id}_salary_${m}`;
+      notifs.push({ type: 'milestone', emp, milestone: m, key, dismissed: dismissed.includes(key), ntype: 'salary' });
+    });
+
+    const nextS = nextSalaryMilestone(years);
+    const daysS = daysUntilMilestone(emp.startDate, nextS.milestone);
+    if (daysS > 0 && daysS <= 90) {
+      const key = `${emp.id}_upcomingsal_${nextS.milestone}`;
+      notifs.push({ type: 'upcoming', emp, milestone: nextS.milestone, daysLeft: daysS, key, dismissed: dismissed.includes(key), ntype: 'salary' });
     }
   });
   return notifs;
@@ -153,7 +193,7 @@ function renderUpcoming() {
       <div class="upcoming-avatar">${initials(n.emp.name)}</div>
       <div class="upcoming-info">
         <div class="upcoming-name">${n.emp.name}</div>
-        <div class="upcoming-meta">${n.emp.department || '—'} · ${n.milestone}-year ${n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone'} on ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}</div>
+        <div class="upcoming-meta">${n.emp.department || '—'} · ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} on ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}</div>
       </div>
       <div class="upcoming-days">in ${n.daysLeft} days</div>
     </div>
@@ -162,15 +202,60 @@ function renderUpcoming() {
 
 function renderTable() {
   const tbody = document.getElementById('empTableBody');
-  if (employees.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="table-empty">No employees added yet. Click "Add Employee" to get started.</div></td></tr>`;
+  
+  let currentEmployees = [...employees];
+  
+  const searchInput = document.getElementById('empSearchInput');
+  if (searchInput) {
+    const q = searchInput.value.toLowerCase().trim();
+    if (q) {
+      currentEmployees = currentEmployees.filter(emp => {
+        return (emp.name && emp.name.toLowerCase().includes(q)) ||
+               (emp.employeeId && emp.employeeId.toLowerCase().includes(q)) ||
+               (emp.department && emp.department.toLowerCase().includes(q));
+      });
+    }
+  }
+
+  const sortSelect = document.getElementById('empSortSelect');
+  if (sortSelect) {
+    const sortVal = sortSelect.value;
+    currentEmployees.sort((a, b) => {
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+      const deptA = (a.department || '').toLowerCase();
+      const deptB = (b.department || '').toLowerCase();
+      const yearsA = yearsWorked(a.startDate);
+      const yearsB = yearsWorked(b.startDate);
+      const promoA = a.promotionCount || 0;
+      const promoB = b.promotionCount || 0;
+
+      switch(sortVal) {
+        case 'name_asc': return nameA.localeCompare(nameB);
+        case 'name_desc': return nameB.localeCompare(nameA);
+        case 'dept_asc': return deptA.localeCompare(deptB);
+        case 'years_desc': return yearsB - yearsA;
+        case 'years_asc': return yearsA - yearsB;
+        case 'promo_desc': return promoB - promoA;
+        case 'promo_asc': return promoA - promoB;
+        default: return 0;
+      }
+    });
+  }
+
+  if (currentEmployees.length === 0) {
+    if (employees.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="10"><div class="table-empty">No employees added yet. Click "Add Employee" to get started.</div></td></tr>`;
+    } else {
+      tbody.innerHTML = `<tr><td colspan="10"><div class="table-empty">No employees match your search.</div></td></tr>`;
+    }
     return;
   }
-  tbody.innerHTML = employees.map(emp => {
+  
+  tbody.innerHTML = currentEmployees.map(emp => {
     const years = yearsWorked(emp.startDate);
     const pct = Math.min(100, Math.round(progressToNext(years)));
-    const next = nextMilestone(years);
-    const daysLeft = daysUntilMilestone(emp.startDate, next.milestone);
+    const soonest = getSoonestEvent(emp.startDate);
     return `
       <tr>
         <td style="font-weight:600;color:var(--text-hint);font-size:12px;">${emp.employeeId || '—'}</td>
@@ -186,8 +271,8 @@ function renderTable() {
           </div>
         </td>
         <td style="font-size:13px;">
-          ${next.label}<br>
-          <span style="color:var(--text-hint);font-size:11px;">${daysLeft > 0 ? `in ${daysLeft} days` : 'Due now!'}</span>
+          ${soonest.label}<br>
+          <span style="color:var(--text-hint);font-size:11px;">${soonest.daysLeft > 0 ? `in ${soonest.daysLeft} days` : 'Due now!'}</span>
         </td>
         <td>${statusBadge(years)}</td>
         <td>
@@ -217,15 +302,29 @@ function renderNotifications() {
 
   el.innerHTML = `<div class="notif-list">${active.map(n => {
     if (n.type === 'milestone') {
+      const isSalary = n.ntype === 'salary';
+      const eventTitle = isSalary 
+          ? `${n.emp.name} is due for a ${n.milestone}-year Salary Update!` 
+          : `${n.emp.name} has reached ${n.milestone} years of service! ${n.milestone % 10 === 0 ? '(Loyalty Award)' : ''}`;
+      
+      const subTitle = isSalary
+          ? `${n.emp.department || 'No department'} · Due since ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}`
+          : `${n.emp.department || 'No department'} · Started ${formatDate(n.emp.startDate)} · Admin recognition recommended`;
+
+      const extraAction = isSalary 
+          ? `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; background: var(--teal); box-shadow: none;" onclick="openPromoteModal('${n.emp.id}'); dismissNotif('${n.key}')">Update Salary</button>`
+          : '';
+
       return `
         <div class="notif-card milestone">
-          <div class="notif-icon milestone">&#9733;</div>
+          <div class="notif-icon milestone" style="${isSalary ? 'background: var(--teal); animation: none;' : ''}">${isSalary ? '₱' : '&#9733;'}</div>
           <div class="notif-body">
-            <div class="notif-title">${n.emp.name} has reached ${n.milestone} years of service! ${n.milestone % 10 === 0 ? '(Loyalty Award)' : ''}</div>
-            <div class="notif-sub">
-              ${n.emp.department || 'No department'} · Started ${formatDate(n.emp.startDate)} · Admin recognition recommended
+            <div class="notif-title">${eventTitle}</div>
+            <div class="notif-sub">${subTitle}</div>
+            <div style="display:flex; gap: 8px;">
+              ${extraAction}
+              <button class="notif-dismiss" onclick="dismissNotif('${n.key}')">Dismiss</button>
             </div>
-            <button class="notif-dismiss" onclick="dismissNotif('${n.key}')">Dismiss</button>
           </div>
         </div>
       `;
@@ -234,7 +333,7 @@ function renderNotifications() {
         <div class="notif-card upcoming">
           <div class="notif-icon upcoming">&#8987;</div>
           <div class="notif-body">
-            <div class="notif-title">${n.emp.name} — ${n.milestone}-year ${n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone'} in ${n.daysLeft} days</div>
+            <div class="notif-title">${n.emp.name} — ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} in ${n.daysLeft} days</div>
             <div class="notif-sub">
               ${n.emp.department || 'No department'} · Milestone date: ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}
             </div>
@@ -329,6 +428,11 @@ function switchView(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`view-${name}`).classList.add('active');
   event.currentTarget.classList.add('active');
+  
+  if (window.innerWidth <= 768) {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+  }
 }
 
 // ─── Modal ───────────────────────────────────────────────────────────────────
@@ -363,37 +467,20 @@ function closeModalOutside(e) {
 function handlePromote(id) {
   const emp = employees.find(e => e.id === id);
   if (!emp) return;
-  if (!emp.salaryHistory) emp.salaryHistory = [emp.currentSalary];
 
-  let nextCount = (emp.promotionCount || 0) + 1;
-  // If we are reaching the 3rd, 6th, 9th promotion... pop up the new salary form.
-  if (nextCount > 0 && nextCount % 3 === 0) {
-    openPromoteModal(id);
-  } else {
-    // Silent promote
-    emp.promotionCount = nextCount;
-    saveEmployees(employees);
-    renderAll();
-  }
+  emp.promotionCount = (emp.promotionCount || 0) + 1;
+  saveEmployees(employees);
+  renderAll();
 }
 
 function handleDemote(id) {
   const emp = employees.find(e => e.id === id);
   if (!emp) return;
-  if (!emp.salaryHistory) emp.salaryHistory = [emp.currentSalary];
 
   let currentCount = emp.promotionCount || 0;
   if (currentCount <= 0) {
     alert('This employee has 0 promotions and cannot be demoted further.');
     return;
-  }
-
-  // Reverting logic: Did they just drop below a multiple of 3? (e.g. 3->2, 6->5)
-  if (currentCount > 0 && currentCount % 3 === 0) {
-    if (emp.salaryHistory.length > 1) {
-      emp.salaryHistory.pop(); // Remove the latest salary bump
-      emp.currentSalary = emp.salaryHistory[emp.salaryHistory.length - 1]; // Revert 
-    }
   }
 
   emp.promotionCount = currentCount - 1;
@@ -653,6 +740,21 @@ function updateThemeIcon(theme) {
   if (icon && label) {
     icon.innerHTML = theme === 'dark' ? '&#9728;' : '&#9789;'; // Sun / Moon
     label.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+  }
+}
+
+// ─── Sidebar Toggle ──────────────────────────────────────────────────────────
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const main = document.querySelector('.main');
+  if (sidebar && main) {
+    if (window.innerWidth <= 768) {
+      sidebar.classList.toggle('mobile-open');
+    } else {
+      sidebar.classList.toggle('collapsed');
+      main.classList.toggle('collapsed');
+    }
   }
 }
 

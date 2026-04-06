@@ -13,31 +13,47 @@
   <div class="app">
 
     <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-icon">&#9670;</div>
-        <span>ServiceTrack</span>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="brand-icon">&#9670;</div>
+          <span class="nav-text">ServiceTrack</span>
+        </div>
+        <button class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
+          &#9776;
+        </button>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-item active" onclick="switchView('dashboard')">
-          <span class="nav-icon">&#9632;</span> Dashboard
+        <button class="nav-item active" onclick="switchView('dashboard')" title="Dashboard">
+          <span class="nav-icon">&#9632;</span> <span class="nav-text">Dashboard</span>
         </button>
-        <button class="nav-item" onclick="switchView('employees')">
-          <span class="nav-icon">&#9632;</span> Employees
+        <button class="nav-item" onclick="switchView('employees')" title="Employees">
+          <span class="nav-icon">&#9632;</span> <span class="nav-text">Employees</span>
         </button>
-        <button class="nav-item" onclick="switchView('notifications')">
-          <span class="nav-icon">&#9632;</span> Notifications
+        <button class="nav-item" onclick="switchView('notifications')" title="Notifications">
+          <span class="nav-icon">&#9632;</span> <span class="nav-text">Notifications</span>
           <span class="nav-badge" id="sidebarBadge"></span>
         </button>
         <div style="margin-top: 2rem;"></div> <!-- Spacer -->
-        <button class="nav-item" onclick="toggleTheme()" id="themeToggleBtn">
-          <span class="nav-icon" id="themeIcon">&#9789;</span> <span id="themeLabel">Dark Mode</span>
+        <button class="nav-item" onclick="toggleTheme()" id="themeToggleBtn" title="Theme Toggle">
+          <span class="nav-icon" id="themeIcon">&#9789;</span> <span class="nav-text" id="themeLabel">Dark Mode</span>
         </button>
       </nav>
     </aside>
 
     <!-- Main content -->
-    <main class="main">
+    <main class="main" id="main">
+
+      <!-- Mobile Header -->
+      <div class="mobile-header">
+        <div class="sidebar-brand" style="margin-bottom: 0;">
+          <div class="brand-icon" style="width: 30px; height: 30px; font-size: 10px;">&#9670;</div>
+          <span style="font-size: 18px; font-weight: 700;">ServiceTrack</span>
+        </div>
+        <button class="btn-icon" onclick="toggleSidebar()" style="font-size: 20px; color: var(--text);">
+          &#9776;
+        </button>
+      </div>
 
       <!-- Dashboard View -->
       <section id="view-dashboard" class="view active">
@@ -61,6 +77,26 @@
           </div>
           <button class="btn-primary" onclick="openModal()">+ Add Employee</button>
         </div>
+        
+        <div class="controls-row">
+          <div class="search-wrap">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="empSearchInput" class="custom-input" placeholder="Search by Name, ID, or Department..." oninput="renderTable()">
+          </div>
+          <div class="sort-wrap">
+            <span class="sort-icon">&#8645;</span>
+            <select id="empSortSelect" class="custom-select" onchange="renderTable()">
+              <option value="name_asc">Sort by Name (A-Z)</option>
+              <option value="name_desc">Sort by Name (Z-A)</option>
+              <option value="dept_asc">Sort by Department</option>
+              <option value="years_desc">Sort by Years Served (High - Low)</option>
+              <option value="years_asc">Sort by Years Served (Low - High)</option>
+              <option value="promo_desc">Sort by Promotion (High - Low)</option>
+              <option value="promo_asc">Sort by Promotion (Low - High)</option>
+            </select>
+          </div>
+        </div>
+
         <div class="table-card">
           <table class="emp-table">
             <thead>
