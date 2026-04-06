@@ -131,11 +131,19 @@
             <h1 class="page-title">Notifications</h1>
             <p class="page-sub">Admin alerts for service milestones</p>
           </div>
-          <div style="display:flex; gap:12px;">
-            <button class="btn-outline" style="border-color: var(--text-muted); color: var(--text-muted);" onclick="openDismissAllModal()">Dismiss all</button>
-            <button class="btn-outline" onclick="clearAllDismissed()">Reset dismissed</button>
+          <div style="display:flex; gap:12px; align-items:center;">
+             <button class="btn-outline" style="border-color: var(--text-muted); color: var(--text-muted);" onclick="openDismissAllModal()">Dismiss all</button>
+             <button class="btn-outline" onclick="openHistoryModal()">History</button>
           </div>
         </div>
+
+        <div class="controls-row" style="margin-bottom: 24px;">
+           <div class="search-wrap" style="flex:1;">
+             <span class="search-icon">&#128269;</span>
+             <input type="text" id="notifSearchInput" class="custom-input" placeholder="Search by Employee Name..." oninput="handleNotifSearch()">
+           </div>
+        </div>
+
         <div class="tab-nav" style="display: flex; gap: 40px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
           <button class="tab-btn active" id="notifTabLoyalty" onclick="switchNotifTab('loyalty')">Loyalty Awards</button>
           <button class="tab-btn" id="notifTabSalary" onclick="switchNotifTab('salary')">Salary Updates</button>
@@ -193,7 +201,7 @@
           <input type="date" id="inputDate" />
         </div>
         <div class="form-group">
-          <label>Starting Salary (₱)</label>
+          <label>Salary (₱)</label>
           <input type="number" id="inputSalary" placeholder="e.g. 50000" />
         </div>
       </div>
@@ -257,7 +265,7 @@
           <input type="date" id="editDate" />
         </div>
         <div class="form-group">
-          <label>Starting Salary (₱)</label>
+          <label>Salary (₱)</label>
           <input type="number" id="editSalary" />
         </div>
       </div>
@@ -413,6 +421,68 @@
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeDismissAllModal()">Cancel</button>
         <button class="btn-primary" onclick="dismissAllNotifs()">Confirm Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Modal (Tab Island) -->
+  <div id="historyModal" class="modal-overlay" style="display:none;" onmousedown="closeHistoryModalOutside(event)">
+    <div class="modal modal-large modal-island">
+      <div class="modal-header">
+        <h2 class="modal-title">Notification History Log</h2>
+        <button class="modal-close" onclick="closeHistoryModal()">&#10005;</button>
+      </div>
+      <div class="modal-body" style="padding-top:0;">
+        <div class="controls-row" style="margin: 20px 0;">
+           <div class="search-wrap" style="flex:1;">
+             <span class="search-icon">&#128269;</span>
+             <input type="text" id="historySearchInput" class="custom-input" placeholder="Search in history..." oninput="handleHistorySearch()">
+           </div>
+        </div>
+        <div class="tab-nav island-tabs" style="display: flex; gap: 30px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+          <button class="tab-btn active" id="histTabLoyalty" onclick="switchHistoryTab('loyalty')">Loyalty</button>
+          <button class="tab-btn" id="histTabSalary" onclick="switchHistoryTab('salary')">Salary</button>
+          <button class="tab-btn" id="histTabUpcoming" onclick="switchHistoryTab('upcoming')">Upcoming</button>
+        </div>
+        <div id="historyContainer" style="max-height: 400px; overflow-y: auto;"></div>
+      </div>
+      <div class="modal-footer">
+         <button class="btn-outline" style="border-color: var(--teal); color: var(--teal);" onclick="openRestoreAllModal()">Restore all</button>
+         <button class="btn-outline" style="border-color: var(--red); color: var(--red);" onclick="openClearHistoryModal()">Clear History</button>
+         <div style="flex:1;"></div>
+         <button class="btn-primary" onclick="closeHistoryModal()">Close Island</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restore All Modal -->
+  <div id="restoreAllModal" class="modal-overlay" style="display:none;" onmousedown="closeRestoreAllModalOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Restore All Notifications</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to move <strong>ALL</strong> history items back into the Active view?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeRestoreAllModal()">Cancel</button>
+        <button class="btn-primary" style="background: var(--teal); border-color: var(--teal);" onclick="confirmRestoreAll()">Yes, Restore All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clear History Modal -->
+  <div id="clearHistoryModal" class="modal-overlay" style="display:none;" onmousedown="closeClearHistoryModalOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Clear History permanently</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to <strong>PERMANENTLY DELETE</strong> your notification history? <br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">This action cannot be undone. These specific alerts will not show up again.</span></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeClearHistoryModal()">Cancel</button>
+        <button class="btn-primary" style="background: var(--red); border-color: var(--red);" onclick="confirmClearHistory()">Yes, Clear Permanently</button>
       </div>
     </div>
   </div>

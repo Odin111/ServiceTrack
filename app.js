@@ -2,10 +2,11 @@
 
 const STORAGE_KEY = 'servicetrack_employees';
 const DISMISSED_KEY = 'servicetrack_dismissed';
+const PERMANENT_DELETED_KEY = 'servicetrack_deleted';
 
 function loadEmployees() {
-  try { 
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); 
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     return data.map(emp => {
       // Migrate department to division seamlessly
       if (emp.department !== undefined && emp.division === undefined) {
@@ -29,8 +30,22 @@ function saveDismissed(data) {
   localStorage.setItem(DISMISSED_KEY, JSON.stringify(data));
 }
 
+function loadDeleted() {
+  try { return JSON.parse(localStorage.getItem(PERMANENT_DELETED_KEY) || '[]'); } catch { return []; }
+}
+
+function saveDeleted(data) {
+  localStorage.setItem(PERMANENT_DELETED_KEY, JSON.stringify(data));
+}
+
 let employees = loadEmployees();
 let dismissed = loadDismissed();
+let deletedNotifs = loadDeleted();
+
+let isHistoryMode = false;
+let notifSearchTerm = '';
+let historySearchTerm = '';
+let currentHistoryTab = 'loyalty';
 
 // ─── Calculations ────────────────────────────────────────────────────────────
 
@@ -88,7 +103,7 @@ function getSoonestEvent(startDate) {
   const yrs = yearsWorked(startDate);
   const nextL = nextMilestone(yrs);
   const daysL = daysUntilMilestone(startDate, nextL.milestone);
-  
+
   const nextS = nextSalaryMilestone(yrs);
   const daysS = daysUntilMilestone(startDate, nextS.milestone);
 
@@ -138,7 +153,7 @@ function getNotifications() {
       notifs.push({ type: 'upcoming', emp, milestone: nextS.milestone, daysLeft: daysS, key, dismissed: dismissed.includes(key), ntype: 'salary' });
     }
   });
-  return notifs;
+  return notifs.filter(n => !deletedNotifs.includes(n.key));
 }
 
 function activeNotifCount() {
@@ -208,17 +223,17 @@ function renderUpcoming() {
 
 function renderTable() {
   const tbody = document.getElementById('empTableBody');
-  
+
   let currentEmployees = [...employees];
-  
+
   const searchInput = document.getElementById('empSearchInput');
   if (searchInput) {
     const q = searchInput.value.toLowerCase().trim();
     if (q) {
       currentEmployees = currentEmployees.filter(emp => {
         return (emp.name && emp.name.toLowerCase().includes(q)) ||
-               (emp.employeeId && emp.employeeId.toLowerCase().includes(q)) ||
-               (emp.division && emp.division.toLowerCase().includes(q));
+          (emp.employeeId && emp.employeeId.toLowerCase().includes(q)) ||
+          (emp.division && emp.division.toLowerCase().includes(q));
       });
     }
   }
@@ -236,7 +251,7 @@ function renderTable() {
       const promoA = a.promotionCount || 0;
       const promoB = b.promotionCount || 0;
 
-      switch(sortVal) {
+      switch (sortVal) {
         case 'name_asc': return nameA.localeCompare(nameB);
         case 'name_desc': return nameB.localeCompare(nameA);
         case 'div_asc': return divA.localeCompare(divB);
@@ -257,7 +272,7 @@ function renderTable() {
     }
     return;
   }
-  
+
   tbody.innerHTML = currentEmployees.map(emp => {
     const years = yearsWorked(emp.startDate);
     const pct = Math.min(100, Math.round(progressToNext(years)));
@@ -299,63 +314,24 @@ function renderTable() {
 
 function renderNotifications() {
   const notifs = getNotifications();
-  const active = notifs.filter(n => !n.dismissed);
+  
+  // Filter by Search Term (Active Only)
+  let filtered = notifs.filter(n => !n.dismissed);
+  if (notifSearchTerm) {
+    const q = notifSearchTerm.toLowerCase();
+    filtered = filtered.filter(n => n.emp.name.toLowerCase().includes(q));
+  }
+
   const el = document.getElementById('notifContainer');
 
-  if (active.length === 0) {
-    el.innerHTML = `<div class="notif-empty">
-      No active notifications. Milestone alerts appear when an employee reaches 10 years, then every 5 years after.
-    </div>`;
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="notif-empty">${notifSearchTerm ? 'No matching active notifications.' : 'No active notifications at this time.'}</div>`;
     return;
   }
 
-  const loyaltyGroup = active.filter(n => n.type === 'milestone' && n.ntype !== 'salary');
-  const salaryGroup = active.filter(n => n.type === 'milestone' && n.ntype === 'salary');
-  const upcomingGroup = active.filter(n => n.type === 'upcoming');
-
-  function renderNotifItem(n) {
-    if (n.type === 'milestone') {
-      const isSalary = n.ntype === 'salary';
-      const eventTitle = isSalary 
-          ? `${n.emp.name} is due for a ${n.milestone}-year Salary Update!` 
-          : `${n.emp.name} has reached ${n.milestone} years of service! ${n.milestone % 10 === 0 ? '(Loyalty Award)' : ''}`;
-      
-      const subTitle = isSalary
-          ? `${n.emp.division || 'No division'} · Due since ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}`
-          : `${n.emp.division || 'No division'} · Started ${formatDate(n.emp.startDate)} · Admin recognition recommended`;
-
-      const extraAction = isSalary 
-          ? `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; background: var(--teal); box-shadow: none;" onclick="openSalaryModal('${n.emp.id}', '${n.key}')">Update Salary</button>`
-          : `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; box-shadow: none;" onclick="dismissNotif('${n.key}')">Mark as recognized</button>`;
-
-      return `
-        <div class="notif-card milestone">
-          <div class="notif-icon milestone" style="${isSalary ? 'background: var(--teal); animation: none;' : ''}">${isSalary ? '₱' : '&#9733;'}</div>
-          <div class="notif-body">
-            <div class="notif-title">${eventTitle}</div>
-            <div class="notif-sub">${subTitle}</div>
-            <div style="display:flex; gap: 8px;">
-              ${extraAction}
-              <button class="notif-dismiss" onclick="dismissNotif('${n.key}')">Dismiss</button>
-            </div>
-          </div>
-        </div>
-      `;
-    } else {
-      return `
-        <div class="notif-card upcoming">
-          <div class="notif-icon upcoming">&#8987;</div>
-          <div class="notif-body">
-            <div class="notif-title">${n.emp.name} — ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} in ${n.daysLeft} days</div>
-            <div class="notif-sub">
-              ${n.emp.division || 'No division'} · Milestone date: ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}
-            </div>
-            <button class="notif-dismiss" onclick="dismissNotif('${n.key}')">Dismiss</button>
-          </div>
-        </div>
-      `;
-    }
-  }
+  const loyaltyGroup = filtered.filter(n => n.type === 'milestone' && n.ntype !== 'salary');
+  const salaryGroup = filtered.filter(n => n.type === 'milestone' && n.ntype === 'salary');
+  const upcomingGroup = filtered.filter(n => n.type === 'upcoming');
 
   let activeGroup = loyaltyGroup;
   let activeTitle = 'Loyalty Awards';
@@ -379,15 +355,75 @@ function renderNotifications() {
 
   let extraNote = '';
   if (hiddenCount > 0) {
-    extraNote = `<div style="text-align:center; padding: 24px 16px; color: var(--text-muted); font-size: 14px;"><strong>+ ${hiddenCount} more ${activeTitle.toLowerCase()}</strong><br>Dismiss some active notifications to see the rest, or click "Dismiss all".</div>`;
+    extraNote = `<div style="text-align:center; padding: 24px 16px; color: var(--text-muted); font-size: 14px;"><strong>+ ${hiddenCount} more ${activeTitle.toLowerCase()}</strong><br>Dismiss some items to see the rest.</div>`;
   }
 
   el.innerHTML = `
     <div class="notif-list">
-      ${limitedGroup.map(n => renderNotifItem(n)).join('')}
+      ${limitedGroup.map(n => renderNotifItem(n, false)).join('')}
     </div>
     ${extraNote}
   `;
+}
+
+function renderNotifItem(n, isHistoryView = false) {
+  if (n.type === 'milestone') {
+    const isSalary = n.ntype === 'salary';
+    const eventTitle = isSalary 
+        ? `${n.emp.name} is due for a ${n.milestone}-year Salary Update!` 
+        : `${n.emp.name} has reached ${n.milestone} years of service! ${n.milestone % 10 === 0 ? '(Loyalty Award)' : ''}`;
+    
+    const subTitle = isSalary
+        ? `${n.emp.division || 'No division'} · Due since ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}`
+        : `${n.emp.division || 'No division'} · Started ${formatDate(n.emp.startDate)} · Admin recognition recommended`;
+
+    const extraAction = isSalary 
+        ? `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; background: var(--teal); box-shadow: none;" onclick="openSalaryModal('${n.emp.id}', '${n.key}')">Update Salary</button>`
+        : `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; box-shadow: none;" onclick="dismissNotif('${n.key}')">Mark as recognized</button>`;
+
+    const actionBlock = isHistoryView
+      ? `<div style="display:flex; gap: 8px; align-items:center; margin-top:12px;">
+           <button class="notif-dismiss" style="color:var(--teal);" onclick="restoreNotif('${n.key}')">Restore</button>
+           <button class="notif-dismiss" style="color:var(--red);" onclick="deleteNotifFromHistory('${n.key}')">Delete Permanently</button>
+         </div>`
+      : `<div style="display:flex; gap: 8px; align-items:center;">
+           ${extraAction}
+           <button class="notif-dismiss" onclick="dismissNotif('${n.key}')">Dismiss</button>
+         </div>`;
+
+    return `
+      <div class="notif-card milestone">
+        <div class="notif-icon milestone" style="${isSalary ? 'background: var(--teal); animation: none;' : ''}">${isSalary ? '₱' : '&#9733;'}</div>
+        <div class="notif-body">
+          <div class="notif-title">${eventTitle}</div>
+          <div class="notif-sub">${subTitle}</div>
+          ${actionBlock}
+        </div>
+      </div>
+    `;
+  } else {
+    const actionBlock = isHistoryView
+      ? `<div style="display:flex; gap:8px; margin-top:8px;">
+           <button class="notif-dismiss" style="color:var(--teal);" onclick="restoreNotif('${n.key}')">Restore</button>
+           <button class="notif-dismiss" style="color:var(--red);" onclick="deleteNotifFromHistory('${n.key}')">Delete Permanently</button>
+         </div>`
+      : `<div style="display:flex; gap:8px; margin-top:8px;">
+           <button class="notif-dismiss" onclick="dismissNotif('${n.key}')">Dismiss</button>
+         </div>`;
+
+    return `
+      <div class="notif-card upcoming">
+        <div class="notif-icon upcoming">&#8987;</div>
+        <div class="notif-body">
+          <div class="notif-title">${n.emp.name} — ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} in ${n.daysLeft} days</div>
+          <div class="notif-sub">
+            ${n.emp.division || 'No division'} · Milestone date: ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}
+          </div>
+          ${actionBlock}
+        </div>
+      </div>
+    `;
+  }
 }
 
 let currentNotifTab = 'loyalty';
@@ -396,11 +432,11 @@ function switchNotifTab(tab) {
   document.getElementById('notifTabLoyalty').classList.remove('active');
   document.getElementById('notifTabSalary').classList.remove('active');
   document.getElementById('notifTabUpcoming').classList.remove('active');
-  
+
   if (tab === 'loyalty') document.getElementById('notifTabLoyalty').classList.add('active');
   if (tab === 'salary') document.getElementById('notifTabSalary').classList.add('active');
   if (tab === 'upcoming') document.getElementById('notifTabUpcoming').classList.add('active');
-  
+
   currentNotifTab = tab;
   renderNotifications();
 }
@@ -431,14 +467,14 @@ function addEmployee() {
   const date = document.getElementById('inputDate').value;
   const salaryInput = document.getElementById('inputSalary').value;
 
-  if (!name || !date || !salaryInput) { alert('Please provide a name, start date, and starting salary.'); return; }
+  if (!name || !date || !salaryInput) { alert('Please provide a name, start date, and salary.'); return; }
 
   const currentSalary = parseFloat(salaryInput) || 0;
-  const newEmp = { 
-    id: Date.now().toString(), employeeId: empIdText || '—', name, division: dept, 
-    position: currentPosition, positionHistory: [currentPosition], 
+  const newEmp = {
+    id: Date.now().toString(), employeeId: empIdText || '—', name, division: dept,
+    position: currentPosition, positionHistory: [currentPosition],
     lastPromotionDate: '', lastPromotionDateHistory: [''],
-    eligibility, startDate: date, currentSalary, promotionCount: 0 
+    eligibility, startDate: date, currentSalary, promotionCount: 0
   };
 
   const oldEmp = checkDuplicate(newEmp);
@@ -549,6 +585,135 @@ function dismissAllNotifs() {
   closeDismissAllModal();
 }
 
+// ─── Notification History & Search ──────────────────────────────────────────
+
+function handleNotifSearch() {
+  notifSearchTerm = document.getElementById('notifSearchInput').value;
+  renderNotifications();
+}
+
+// ─── History Island & Search ────────────────────────────────────────────────
+
+function openHistoryModal() {
+  document.getElementById('historyModal').style.display = 'flex';
+  renderHistoryContent();
+}
+
+function closeHistoryModal() {
+  document.getElementById('historyModal').style.display = 'none';
+}
+
+function closeHistoryModalOutside(e) {
+  if (e.target.id === 'historyModal') closeHistoryModal();
+}
+
+function handleHistorySearch() {
+  historySearchTerm = document.getElementById('historySearchInput').value;
+  renderHistoryContent();
+}
+
+function switchHistoryTab(tab) {
+  document.getElementById('histTabLoyalty').classList.remove('active');
+  document.getElementById('histTabSalary').classList.remove('active');
+  document.getElementById('histTabUpcoming').classList.remove('active');
+  
+  if (tab === 'loyalty') document.getElementById('histTabLoyalty').classList.add('active');
+  if (tab === 'salary') document.getElementById('histTabSalary').classList.add('active');
+  if (tab === 'upcoming') document.getElementById('histTabUpcoming').classList.add('active');
+  
+  currentHistoryTab = tab;
+  renderHistoryContent();
+}
+
+function renderHistoryContent() {
+  const notifs = getNotifications();
+  const el = document.getElementById('historyContainer');
+  
+  let historyItems = notifs.filter(n => n.dismissed);
+  
+  // Filter by Search
+  if (historySearchTerm) {
+    const q = historySearchTerm.toLowerCase();
+    historyItems = historyItems.filter(n => n.emp.name.toLowerCase().includes(q));
+  }
+  
+  // Filter by Tab
+  if (currentHistoryTab === 'loyalty') {
+    historyItems = historyItems.filter(n => n.type === 'milestone' && n.ntype !== 'salary');
+  } else if (currentHistoryTab === 'salary') {
+    historyItems = historyItems.filter(n => n.type === 'milestone' && n.ntype === 'salary');
+  } else if (currentHistoryTab === 'upcoming') {
+    historyItems = historyItems.filter(n => n.type === 'upcoming');
+  }
+
+  if (historyItems.length === 0) {
+    el.innerHTML = `<div class="notif-empty" style="padding: 40px 0;">No history records found for this category.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="notif-list">
+      ${historyItems.map(n => renderNotifItem(n, true)).join('')}
+    </div>
+  `;
+}
+
+function restoreNotif(key) {
+  dismissed = dismissed.filter(k => k !== key);
+  saveDismissed(dismissed);
+  renderAll();
+  renderHistoryContent();
+}
+
+function deleteNotifFromHistory(key) {
+  if (!confirm('Are you sure you want to permanently delete this history record?')) return;
+  if (!deletedNotifs.includes(key)) {
+    deletedNotifs.push(key);
+    saveDeleted(deletedNotifs);
+  }
+  renderAll();
+  renderHistoryContent();
+}
+
+function openRestoreAllModal() {
+  document.getElementById('restoreAllModal').style.display = 'flex';
+}
+function closeRestoreAllModal() {
+  document.getElementById('restoreAllModal').style.display = 'none';
+}
+function closeRestoreAllModalOutside(e) {
+  if (e.target.id === 'restoreAllModal') closeRestoreAllModal();
+}
+function confirmRestoreAll() {
+  dismissed = [];
+  saveDismissed(dismissed);
+  closeRestoreAllModal();
+  renderAll();
+  renderHistoryContent();
+}
+
+function openClearHistoryModal() {
+  document.getElementById('clearHistoryModal').style.display = 'flex';
+}
+function closeClearHistoryModal() {
+  document.getElementById('clearHistoryModal').style.display = 'none';
+}
+function closeClearHistoryModalOutside(e) {
+  if (e.target.id === 'clearHistoryModal') closeClearHistoryModal();
+}
+function confirmClearHistory() {
+  const notifs = getNotifications();
+  notifs.forEach(n => {
+    if (n.dismissed && !deletedNotifs.includes(n.key)) {
+      deletedNotifs.push(n.key);
+    }
+  });
+  saveDeleted(deletedNotifs);
+  closeClearHistoryModal();
+  renderAll();
+  renderHistoryContent();
+}
+
 // ─── View Switching ───────────────────────────────────────────────────────────
 
 function switchView(name) {
@@ -556,7 +721,7 @@ function switchView(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`view-${name}`).classList.add('active');
   event.currentTarget.classList.add('active');
-  
+
   if (window.innerWidth <= 768) {
     const sidebar = document.getElementById('sidebar');
     if (sidebar) sidebar.classList.remove('mobile-open');
@@ -653,17 +818,17 @@ function openPromoteModal(id) {
     if (posInput) {
       posInput.value = emp ? (emp.position || '') : '';
     }
-    
+
     const errDiv = document.getElementById('promoteError');
     if (errDiv) errDiv.textContent = '';
-    
+
     const modal = document.getElementById('promoteModal');
     if (modal) {
       modal.style.display = 'flex';
     }
-    
+
     if (posInput) posInput.focus();
-  } catch(e) {
+  } catch (e) {
     console.error("Open Promote Modal Error:", e);
   }
 }
@@ -671,24 +836,24 @@ function openPromoteModal(id) {
 function closePromoteModal() {
   const modal = document.getElementById('promoteModal');
   if (modal) modal.style.display = 'none';
-  
+
   const posInput = document.getElementById('inputNewPosition');
   if (posInput) posInput.value = '';
-  
+
   const errDiv = document.getElementById('promoteError');
   if (errDiv) errDiv.textContent = '';
-  
+
   currentPromoteEmpId = null;
 }
 
 function submitPromotion() {
   try {
     if (!currentPromoteEmpId) return;
-    
+
     const posInput = document.getElementById('inputNewPosition');
     const newPosition = posInput ? posInput.value.trim() : '';
     const errDiv = document.getElementById('promoteError');
-    
+
     if (!newPosition) {
       if (errDiv) errDiv.textContent = 'Please specify the new position.';
       return;
@@ -704,10 +869,10 @@ function submitPromotion() {
       }
 
       if (!emp.positionHistory) {
-         emp.positionHistory = [emp.position || ''];
+        emp.positionHistory = [emp.position || ''];
       }
       if (!emp.lastPromotionDateHistory) {
-         emp.lastPromotionDateHistory = [emp.lastPromotionDate || ''];
+        emp.lastPromotionDateHistory = [emp.lastPromotionDate || ''];
       }
       emp.positionHistory.push(newPosition);
       emp.lastPromotionDateHistory.push(new Date().toISOString().split('T')[0]);
@@ -718,7 +883,7 @@ function submitPromotion() {
       renderAll();
     }
     closePromoteModal();
-  } catch(e) {
+  } catch (e) {
     console.error("Submit Promotion Error:", e);
   }
 }
@@ -737,7 +902,7 @@ function openSalaryModal(id, notifKey = null) {
     if (salInput) {
       salInput.value = (emp && emp.currentSalary) ? emp.currentSalary : '';
     }
-    
+
     const hint = document.getElementById('salaryHint');
     if (hint) {
       if (emp && emp.currentSalary) {
@@ -747,14 +912,14 @@ function openSalaryModal(id, notifKey = null) {
         hint.textContent = '';
       }
     }
-    
+
     const modal = document.getElementById('salaryModal');
     if (modal) {
       modal.style.display = 'flex';
     }
-    
+
     if (salInput) salInput.focus();
-  } catch(e) {
+  } catch (e) {
     console.error("Open Salary Modal Error:", e);
   }
 }
@@ -762,13 +927,13 @@ function openSalaryModal(id, notifKey = null) {
 function closeSalaryModal() {
   const modal = document.getElementById('salaryModal');
   if (modal) modal.style.display = 'none';
-  
+
   const salInput = document.getElementById('inputNewSalary');
   if (salInput) salInput.value = '';
-  
+
   const hint = document.getElementById('salaryHint');
   if (hint) hint.textContent = '';
-  
+
   currentSalaryEmpId = null;
   currentSalaryNotifKey = null;
 }
@@ -776,7 +941,7 @@ function closeSalaryModal() {
 function submitSalaryUpdate() {
   try {
     if (!currentSalaryEmpId) return;
-    
+
     const salInput = document.getElementById('inputNewSalary');
     const newSalary = salInput ? parseFloat(salInput.value) : 0;
     if (isNaN(newSalary) || newSalary <= 0) {
@@ -813,7 +978,7 @@ function submitSalaryUpdate() {
       renderAll();
     }
     closeSalaryModal();
-  } catch(e) {
+  } catch (e) {
     console.error("Submit Salary Error:", e);
   }
 }
@@ -857,7 +1022,7 @@ function submitEditEmployee() {
   const salaryInput = document.getElementById('editSalary').value;
 
   if (!name || !date || !salaryInput) {
-    alert('Please provide a name, start date, and starting salary.');
+    alert('Please provide a name, start date, and salary.');
     return;
   }
 
@@ -894,8 +1059,8 @@ let currentDuplicateItem = null;
 let duplicateQueueOnComplete = null;
 
 function checkDuplicate(newEmp) {
-  return employees.find(e => 
-    (e.name.toLowerCase() === newEmp.name.toLowerCase()) || 
+  return employees.find(e =>
+    (e.name.toLowerCase() === newEmp.name.toLowerCase()) ||
     (e.employeeId !== '—' && newEmp.employeeId !== '—' && e.employeeId === newEmp.employeeId)
   );
 }
@@ -992,11 +1157,11 @@ function handleCsvUpload(event) {
     if (lines.length < 2) {
       const succ = document.getElementById('csvSuccess');
       if (succ) {
-         succ.textContent = "The CSV file seems to be empty or missing data.";
-         succ.style.display = 'block';
-         succ.style.background = 'var(--red)';
+        succ.textContent = "The CSV file seems to be empty or missing data.";
+        succ.style.display = 'block';
+        succ.style.background = 'var(--red)';
       } else {
-         alert("The CSV file seems to be empty or missing data.");
+        alert("The CSV file seems to be empty or missing data.");
       }
       return;
     }
@@ -1015,11 +1180,11 @@ function handleCsvUpload(event) {
     if (idIdx === -1 || nameIdx === -1 || deptIdx === -1 || posIdx === -1 || eligIdx === -1 || stepsIdx === -1 || promoDateIdx === -1 || dateIdx === -1) {
       const succ = document.getElementById('csvSuccess');
       if (succ) {
-         succ.textContent = "Error: CSV must include ID, Name, Division, Position Title, Eligibility, Steps, Date of Last Promotion, and Start Date.";
-         succ.style.display = 'block';
-         succ.style.background = 'var(--red)';
+        succ.textContent = "Error: CSV must include ID, Name, Division, Position Title, Eligibility, Steps, Date of Last Promotion, and Start Date.";
+        succ.style.display = 'block';
+        succ.style.background = 'var(--red)';
       } else {
-         alert("Error: CSV must include ID, Name, Division, Position Title, Eligibility, Steps, Date of Last Promotion, and Start Date.");
+        alert("Error: CSV must include ID, Name, Division, Position Title, Eligibility, Steps, Date of Last Promotion, and Start Date.");
       }
       return;
     }
@@ -1078,7 +1243,7 @@ function handleCsvUpload(event) {
       } else {
         employees.push(newEmp);
       }
-      
+
       importedCount++;
     }
 
@@ -1114,11 +1279,11 @@ function handleCsvUpload(event) {
     } else {
       const succ = document.getElementById('csvSuccess');
       if (succ) {
-         succ.textContent = "No valid employee records found to import.";
-         succ.style.display = 'block';
-         succ.style.background = 'var(--red)';
+        succ.textContent = "No valid employee records found to import.";
+        succ.style.display = 'block';
+        succ.style.background = 'var(--red)';
       } else {
-         alert("No valid employee records found to import.");
+        alert("No valid employee records found to import.");
       }
     }
   };
@@ -1174,13 +1339,11 @@ renderAll();
 
 // ─── Scroll to Top ──────────────────────────────────────────────────────────
 
-window.addEventListener('scroll', function() {
+window.addEventListener('scroll', function () {
   const btn = document.getElementById("scrollToTopBtn");
   if (!btn) return;
-  
-  const c = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
   // Show button if scrolled down 300px
-  if (c > 300) {
+  if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
     btn.classList.add("visible");
   } else {
     btn.classList.remove("visible");
@@ -1188,9 +1351,9 @@ window.addEventListener('scroll', function() {
 });
 
 function fastScrollToTop() {
-  const c = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  const c = document.documentElement.scrollTop || document.body.scrollTop;
   if (c > 0) {
     window.requestAnimationFrame(fastScrollToTop);
-    window.scrollTo(0, Math.floor(c - c / 2)); // The divisor (2) controls speed. Lower = faster.
+    window.scrollTo(0, c - c / 4); // The divisor (4) controls speed. Lower = faster.
   }
 }

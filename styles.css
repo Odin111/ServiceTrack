@@ -10,16 +10,6 @@
   font-family: 'Outfit', system-ui, -apple-system, sans-serif;
 }
 
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  text-rendering: optimizeLegibility;
-  -webkit-overflow-scrolling: touch;
-}
-
 :root {
   --bg-top: #f4f6fa;
   --bg-bottom: #e4e8f1;
@@ -160,8 +150,6 @@ body {
   bottom: 0;
   z-index: 10;
   transition: var(--transition);
-  will-change: transform;
-  transform: translateZ(0);
 }
 
 .sidebar-brand {
@@ -263,8 +251,7 @@ body {
 
 .view {
   display: none;
-  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: opacity;
+  animation: fadeIn 0.4s ease-out;
 }
 
 .view.active {
@@ -698,12 +685,12 @@ body {
 }
 
 .notif-card.milestone {
-  background: rgba(254, 243, 199, 0.8);
+  background: var(--amber-light);
   border-color: rgba(245, 158, 11, 0.3);
 }
 
 .notif-card.upcoming {
-  background: rgba(224, 231, 255, 0.8);
+  background: var(--accent-light);
   border-color: rgba(79, 70, 229, 0.3);
 }
 
@@ -780,7 +767,7 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 100;
@@ -800,9 +787,8 @@ body {
   padding: 0;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
-  transform: scale(0.95) translateZ(0);
+  transform: scale(0.95);
   animation: fadeIn 0.3s forwards;
-  will-change: transform, opacity;
 }
 
 .modal-large {
@@ -1248,47 +1234,82 @@ body {
   }
 }
 
+/* ─── Modal Island (History Tab Island) ─── */
+.modal-island {
+  max-width: 800px;
+  width: 90%;
+  border-radius: var(--radius-lg);
+  background: var(--surface-solid); /* Adapts to both light and dark themes */
+  border: 1px solid var(--border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.9) translateY(20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.island-tabs .tab-btn {
+  font-size: 14px;
+  padding: 8px 0;
+  opacity: 0.6;
+}
+
+.island-tabs .tab-btn.active {
+  opacity: 1;
+  color: var(--accent);
+}
+
+#historyContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+#historyContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#historyContainer::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
 /* ─── Scroll to Top Button ─── */
 #scrollToTopBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   position: fixed;
   bottom: 30px;
   right: 30px;
-  z-index: 100;
-  border: none;
-  outline: none;
-  background: linear-gradient(135deg, var(--accent), #818cf8);
-  color: white;
-  cursor: pointer;
-  width: 48px;
-  height: 48px;
+  display: none;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  font-size: 24px;
-  font-weight: bold;
+  background: var(--accent);
+  color: white;
+  border: none;
+  cursor: pointer;
+  z-index: 99;
+  font-size: 20px;
   box-shadow: 0 4px 15px var(--accent-glow);
-  transition: transform 0.2s ease, opacity 0.3s ease, visibility 0.3s ease;
-  opacity: 0;
-  visibility: hidden;
+  transition: all 0.3s ease;
+  align-items: center;
+  justify-content: center;
 }
 
 #scrollToTopBtn.visible {
-  opacity: 1;
-  visibility: visible;
+  display: flex;
 }
 
 #scrollToTopBtn:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px var(--accent-glow);
+  transform: translateY(-5px);
+  background: var(--accent-hover);
 }
 
 @media (max-width: 768px) {
   #scrollToTopBtn {
     bottom: 20px;
     right: 20px;
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
+    width: 45px;
+    height: 45px;
   }
 }
