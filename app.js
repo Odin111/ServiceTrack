@@ -1171,3 +1171,24 @@ function toggleSidebar() {
 
 initTheme();
 renderAll();
+
+// ─── Scroll to Top ──────────────────────────────────────────────────────────
+
+window.addEventListener('scroll', function() {
+  const btn = document.getElementById("scrollToTopBtn");
+  if (!btn) return;
+  // Show button if scrolled down 300px
+  if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+    btn.classList.add("visible");
+  } else {
+    btn.classList.remove("visible");
+  }
+});
+
+function fastScrollToTop() {
+  const c = document.documentElement.scrollTop || document.body.scrollTop;
+  if (c > 0) {
+    window.requestAnimationFrame(fastScrollToTop);
+    window.scrollTo(0, c - c / 4); // The divisor (4) controls speed. Lower = faster.
+  }
+}
