@@ -25,13 +25,13 @@
       </div>
       <nav class="sidebar-nav">
         <button class="nav-item active" onclick="switchView('dashboard')" title="Dashboard">
-          <span class="nav-icon">&#9632;</span> <span class="nav-text">Dashboard</span>
+          <span class="nav-icon">&#8862;</span> <span class="nav-text">Dashboard</span>
         </button>
         <button class="nav-item" onclick="switchView('employees')" title="Employees">
-          <span class="nav-icon">&#9632;</span> <span class="nav-text">Employees</span>
+          <span class="nav-icon">&#128101;&#xFE0E;</span> <span class="nav-text">Employees</span>
         </button>
         <button class="nav-item" onclick="switchView('notifications')" title="Notifications">
-          <span class="nav-icon">&#9632;</span> <span class="nav-text">Notifications</span>
+          <span class="nav-icon">&#128276;&#xFE0E;</span> <span class="nav-text">Notifications</span>
           <span class="nav-badge" id="sidebarBadge"></span>
         </button>
         <div style="margin-top: 2rem;"></div> <!-- Spacer -->
@@ -104,7 +104,7 @@
                 <th>ID</th>
                 <th>Name</th>
                 <th>Division</th>
-                <th>Current Position</th>
+                <th>Position Title</th>
                 <th>Eligibility</th>
                 <th>Start Date</th>
                 <th>Salary</th>
@@ -169,7 +169,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Current Position</label>
+          <label>Position Title</label>
           <input type="text" id="inputPosition" placeholder="e.g. Senior Staff" />
         </div>
         <div class="form-group">
@@ -233,7 +233,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Current Position</label>
+          <label>Position Title</label>
           <input type="text" id="editPosition" />
         </div>
         <div class="form-group">
@@ -264,7 +264,7 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Current Position</label>
+          <label>New Position Title</label>
           <input type="text" id="inputNewPosition" placeholder="e.g. Department Head" />
           <div id="promoteError" style="font-size: 13px; color: var(--red); margin-top: 8px; font-weight: 500;"></div>
         </div>
