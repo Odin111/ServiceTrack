@@ -81,14 +81,14 @@
         <div class="controls-row">
           <div class="search-wrap">
             <span class="search-icon">&#128269;</span>
-            <input type="text" id="empSearchInput" class="custom-input" placeholder="Search by Name, ID, or Department..." oninput="renderTable()">
+            <input type="text" id="empSearchInput" class="custom-input" placeholder="Search by Name, ID, or Division..." oninput="renderTable()">
           </div>
           <div class="sort-wrap">
             <span class="sort-icon">&#8645;</span>
             <select id="empSortSelect" class="custom-select" onchange="renderTable()">
               <option value="name_asc">Sort by Name (A-Z)</option>
               <option value="name_desc">Sort by Name (Z-A)</option>
-              <option value="dept_asc">Sort by Department</option>
+              <option value="div_asc">Sort by Division</option>
               <option value="years_desc">Sort by Years Served (High - Low)</option>
               <option value="years_asc">Sort by Years Served (Low - High)</option>
               <option value="promo_desc">Sort by Promotion (High - Low)</option>
@@ -103,7 +103,9 @@
               <tr>
                 <th>ID</th>
                 <th>Name</th>
-                <th>Department</th>
+                <th>Division</th>
+                <th>Current Position</th>
+                <th>Eligibility</th>
                 <th>Start Date</th>
                 <th>Salary</th>
                 <th>Promotions</th>
@@ -156,8 +158,22 @@
           <input type="text" id="inputName" placeholder="e.g. Juan dela Cruz" />
         </div>
         <div class="form-group">
-          <label>Department</label>
-          <input type="text" id="inputDept" placeholder="e.g. Finance" />
+          <label>Division</label>
+          <select id="inputDept" class="custom-select" style="padding: 12px 16px;">
+            <option value="STOD">STOD</option>
+            <option value="PBDD">PBDD</option>
+            <option value="PARAD">PARAD</option>
+            <option value="LTID">LTID</option>
+            <option value="LEGAL">LEGAL</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Current Position</label>
+          <input type="text" id="inputPosition" placeholder="e.g. Senior Staff" />
+        </div>
+        <div class="form-group">
+          <label>Eligibility</label>
+          <input type="text" id="inputEligibility" placeholder="e.g. CS Professional" />
         </div>
         <div class="form-group">
           <label>Start Date</label>
@@ -174,10 +190,11 @@
           <label for="csvFileInput" class="upload-label">
             <span class="upload-icon">&#8681;</span>
             <span class="upload-text">Select a CSV file to import employees</span>
-            <span class="upload-hint">Required columns: <strong>ID, Name, Department, Start Date, Salary</strong></span>
+            <span class="upload-hint">Required columns: <strong>ID, Name, Division, Position, Eligibility, Start Date, Salary</strong></span>
           </label>
           <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCsvUpload(event)" />
         </div>
+        <div id="csvSuccess" style="display:none; padding:12px; border-radius:8px; background:var(--teal); color:#fff; text-align:center; font-size:14px; margin-top:16px;"></div>
       </div>
 
       <div class="modal-footer" id="footerManual">
@@ -204,8 +221,22 @@
           <input type="text" id="editName" />
         </div>
         <div class="form-group">
-          <label>Department</label>
-          <input type="text" id="editDept" />
+          <label>Division</label>
+          <select id="editDept" class="custom-select" style="padding: 12px 16px;">
+            <option value="STOD">STOD</option>
+            <option value="PBDD">PBDD</option>
+            <option value="PARAD">PARAD</option>
+            <option value="LTID">LTID</option>
+            <option value="LEGAL">LEGAL</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Current Position</label>
+          <input type="text" id="editPosition" />
+        </div>
+        <div class="form-group">
+          <label>Eligibility</label>
+          <input type="text" id="editEligibility" />
         </div>
         <div class="form-group">
           <label>Start Date</label>
@@ -224,22 +255,95 @@
   </div>
 
   <!-- Promote Employee Modal -->
-  <div id="promoteModal" class="modal-overlay" style="display:none;" onmousedown="closePromoteModalOutside(event)">
+  <div id="promoteModal" class="modal-overlay" style="display:none;">
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title">Promote Employee</h2>
-        <button class="modal-close" onclick="closePromoteModal()">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Current Position</label>
+          <input type="text" id="inputNewPosition" placeholder="e.g. Department Head" />
+          <div id="promoteError" style="font-size: 13px; color: var(--red); margin-top: 8px; font-weight: 500;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closePromoteModal()">Cancel Promotion</button>
+        <button class="btn-primary" onclick="submitPromotion()">Confirm Promotion</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Salary Modal -->
+  <div id="salaryModal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Update Salary</h2>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label>New Salary (₱)</label>
           <input type="number" id="inputNewSalary" placeholder="e.g. 65000" />
-          <div id="promoteHint" style="font-size: 13px; color: var(--amber); margin-top: 8px; font-weight: 500;"></div>
+          <div id="salaryHint" style="font-size: 13px; color: var(--amber); margin-top: 8px; font-weight: 500;"></div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-outline" onclick="closePromoteModal()">Cancel</button>
-        <button class="btn-primary" onclick="submitPromotion()">Save Promotion</button>
+        <button class="btn-outline" onclick="closeSalaryModal()">Cancel</button>
+        <button class="btn-primary" onclick="submitSalaryUpdate()">Confirm Update</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demote Employee Modal -->
+  <div id="demoteModal" class="modal-overlay" style="display:none;" onmousedown="closeDemoteModalOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Demote Employee</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to demote <strong id="demoteEmpName">this employee</strong>? <br><span style="color: var(--text-muted); font-size: 13px;">This will reduce their promotion count.</span></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeDemoteModal()">Cancel</button>
+        <button class="btn-primary" style="background: var(--amber); border-color: var(--amber);" onclick="submitDemote()">Confirm Demotion</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duplicate Resolution Modal -->
+  <div id="duplicateModal" class="modal-overlay" style="display:none;">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <h2 class="modal-title" style="color: var(--amber);">Duplicate Detected</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text); font-size: 14px; margin-bottom: 0;">An exact match for Name or ID was found. Please compare and choose which record to keep.</p>
+        <div class="duplicate-columns">
+          <!-- Old Record -->
+          <div class="dup-col">
+            <div class="dup-title old">Old Record (In Database)</div>
+            <div class="dup-field"><span class="dup-label">ID Number</span><span class="dup-value" id="dupOldId"></span></div>
+            <div class="dup-field"><span class="dup-label">Name</span><span class="dup-value" id="dupOldName"></span></div>
+            <div class="dup-field"><span class="dup-label">Division</span><span class="dup-value" id="dupOldDiv"></span></div>
+            <div class="dup-field"><span class="dup-label">Position</span><span class="dup-value" id="dupOldPos"></span></div>
+            <div class="dup-field"><span class="dup-label">Start Date</span><span class="dup-value" id="dupOldDate"></span></div>
+            <div class="dup-field"><span class="dup-label">Salary</span><span class="dup-value" id="dupOldSal"></span></div>
+          </div>
+          <!-- New Record -->
+          <div class="dup-col">
+            <div class="dup-title new">New Record (Incoming)</div>
+            <div class="dup-field"><span class="dup-label">ID Number</span><span class="dup-value" id="dupNewId"></span></div>
+            <div class="dup-field"><span class="dup-label">Name</span><span class="dup-value" id="dupNewName"></span></div>
+            <div class="dup-field"><span class="dup-label">Division</span><span class="dup-value" id="dupNewDiv"></span></div>
+            <div class="dup-field"><span class="dup-label">Position</span><span class="dup-value" id="dupNewPos"></span></div>
+            <div class="dup-field"><span class="dup-label">Start Date</span><span class="dup-value" id="dupNewDate"></span></div>
+            <div class="dup-field"><span class="dup-label">Salary</span><span class="dup-value" id="dupNewSal"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="resolveDuplicate('keepOld')">Keep Old (Discard New)</button>
+        <button class="btn-primary" onclick="resolveDuplicate('keepNew')">Overwrite With New</button>
       </div>
     </div>
   </div>

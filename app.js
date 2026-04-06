@@ -4,7 +4,17 @@ const STORAGE_KEY = 'servicetrack_employees';
 const DISMISSED_KEY = 'servicetrack_dismissed';
 
 function loadEmployees() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
+  try { 
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); 
+    return data.map(emp => {
+      // Migrate department to division seamlessly
+      if (emp.department !== undefined && emp.division === undefined) {
+        emp.division = emp.department;
+        delete emp.department;
+      }
+      return emp;
+    });
+  } catch { return []; }
 }
 
 function saveEmployees(data) {
@@ -193,7 +203,7 @@ function renderUpcoming() {
       <div class="upcoming-avatar">${initials(n.emp.name)}</div>
       <div class="upcoming-info">
         <div class="upcoming-name">${n.emp.name}</div>
-        <div class="upcoming-meta">${n.emp.department || '—'} · ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} on ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}</div>
+        <div class="upcoming-meta">${n.emp.division || '—'} · ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} on ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}</div>
       </div>
       <div class="upcoming-days">in ${n.daysLeft} days</div>
     </div>
@@ -212,7 +222,7 @@ function renderTable() {
       currentEmployees = currentEmployees.filter(emp => {
         return (emp.name && emp.name.toLowerCase().includes(q)) ||
                (emp.employeeId && emp.employeeId.toLowerCase().includes(q)) ||
-               (emp.department && emp.department.toLowerCase().includes(q));
+               (emp.division && emp.division.toLowerCase().includes(q));
       });
     }
   }
@@ -223,8 +233,8 @@ function renderTable() {
     currentEmployees.sort((a, b) => {
       const nameA = (a.name || '').toLowerCase();
       const nameB = (b.name || '').toLowerCase();
-      const deptA = (a.department || '').toLowerCase();
-      const deptB = (b.department || '').toLowerCase();
+      const divA = (a.division || '').toLowerCase();
+      const divB = (b.division || '').toLowerCase();
       const yearsA = yearsWorked(a.startDate);
       const yearsB = yearsWorked(b.startDate);
       const promoA = a.promotionCount || 0;
@@ -233,7 +243,7 @@ function renderTable() {
       switch(sortVal) {
         case 'name_asc': return nameA.localeCompare(nameB);
         case 'name_desc': return nameB.localeCompare(nameA);
-        case 'dept_asc': return deptA.localeCompare(deptB);
+        case 'div_asc': return divA.localeCompare(divB);
         case 'years_desc': return yearsB - yearsA;
         case 'years_asc': return yearsA - yearsB;
         case 'promo_desc': return promoB - promoA;
@@ -260,10 +270,12 @@ function renderTable() {
       <tr>
         <td style="font-weight:600;color:var(--text-hint);font-size:12px;">${emp.employeeId || '—'}</td>
         <td style="font-weight:500;">${emp.name}</td>
-        <td style="color:var(--text-muted);">${emp.department || '—'}</td>
+        <td style="color:var(--text-muted);">${emp.division || '—'}</td>
+        <td style="font-weight:500;">${emp.position || '—'}</td>
+        <td style="color:var(--text-muted);">${emp.eligibility || '—'}</td>
         <td style="color:var(--text-muted);">${formatDate(emp.startDate)}</td>
         <td style="font-weight:600;">${formatCurrency(emp.currentSalary || 0)}</td>
-        <td>${promotionBadge(emp.promotionCount || 0)}</td>
+        <td>${promotionBadge(emp.promotionCount || 0)}<br><span style="font-size:11px;color:var(--text-hint);font-weight:500;">${emp.promotionCount > 0 ? (emp.lastPromotionDate ? 'Last: ' + formatDate(emp.lastPromotionDate) : 'Date Unrecorded') : ''}</span></td>
         <td>
           <div class="progress-wrap">
             <span style="font-weight:600;min-width:32px;">${years.toFixed(1)}</span>
@@ -278,8 +290,8 @@ function renderTable() {
         <td>
            <div style="display:flex;gap:4px;">
               <button class="btn-icon blue" onclick="openEditModal('${emp.id}')">Edit</button>
-              <button class="btn-icon teal" onclick="handlePromote('${emp.id}')">Promote</button>
-              <button class="btn-icon amber" onclick="handleDemote('${emp.id}')" ${(emp.promotionCount || 0) === 0 ? 'disabled' : ''}>Demote</button>
+              <button class="btn-icon teal" onclick="openPromoteModal('${emp.id}')">Promote</button>
+              <button class="btn-icon amber" onclick="openDemoteModal('${emp.id}')" ${(emp.promotionCount || 0) === 0 ? 'disabled' : ''}>Demote</button>
               <button class="btn-icon" onclick="removeEmployee('${emp.id}')">Remove</button>
            </div>
         </td>
@@ -308,12 +320,12 @@ function renderNotifications() {
           : `${n.emp.name} has reached ${n.milestone} years of service! ${n.milestone % 10 === 0 ? '(Loyalty Award)' : ''}`;
       
       const subTitle = isSalary
-          ? `${n.emp.department || 'No department'} · Due since ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}`
-          : `${n.emp.department || 'No department'} · Started ${formatDate(n.emp.startDate)} · Admin recognition recommended`;
+          ? `${n.emp.division || 'No division'} · Due since ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}`
+          : `${n.emp.division || 'No division'} · Started ${formatDate(n.emp.startDate)} · Admin recognition recommended`;
 
       const extraAction = isSalary 
-          ? `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; background: var(--teal); box-shadow: none;" onclick="openPromoteModal('${n.emp.id}'); dismissNotif('${n.key}')">Update Salary</button>`
-          : '';
+          ? `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; background: var(--teal); box-shadow: none;" onclick="openSalaryModal('${n.emp.id}', '${n.key}')">Update Salary</button>`
+          : `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; box-shadow: none;" onclick="dismissNotif('${n.key}')">Mark as recognized</button>`;
 
       return `
         <div class="notif-card milestone">
@@ -335,7 +347,7 @@ function renderNotifications() {
           <div class="notif-body">
             <div class="notif-title">${n.emp.name} — ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} in ${n.daysLeft} days</div>
             <div class="notif-sub">
-              ${n.emp.department || 'No department'} · Milestone date: ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}
+              ${n.emp.division || 'No division'} · Milestone date: ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}
             </div>
             <button class="notif-dismiss" onclick="dismissNotif('${n.key}')">Dismiss</button>
           </div>
@@ -365,18 +377,32 @@ function renderAll() {
 function addEmployee() {
   const empIdText = document.getElementById('inputId').value.trim();
   const name = document.getElementById('inputName').value.trim();
-  const dept = document.getElementById('inputDept').value.trim();
+  const dept = document.getElementById('inputDept').value;
+  const currentPosition = document.getElementById('inputPosition').value.trim();
+  const eligibility = document.getElementById('inputEligibility').value.trim();
   const date = document.getElementById('inputDate').value;
   const salaryInput = document.getElementById('inputSalary').value;
 
   if (!name || !date || !salaryInput) { alert('Please provide a name, start date, and starting salary.'); return; }
 
   const currentSalary = parseFloat(salaryInput) || 0;
+  const newEmp = { id: Date.now().toString(), employeeId: empIdText || '—', name, division: dept, position: currentPosition, eligibility, startDate: date, currentSalary, promotionCount: 0 };
 
-  employees.push({ id: Date.now().toString(), employeeId: empIdText || '—', name, department: dept, startDate: date, currentSalary, promotionCount: 0 });
-  saveEmployees(employees);
-  closeModal();
-  renderAll();
+  const oldEmp = checkDuplicate(newEmp);
+  if (oldEmp) {
+    duplicateQueue = [{ oldEmp, newEmp }];
+    duplicateQueueOnComplete = () => {
+      saveEmployees(employees);
+      closeModal();
+      renderAll();
+    };
+    processDuplicateQueue();
+  } else {
+    employees.push(newEmp);
+    saveEmployees(employees);
+    closeModal();
+    renderAll();
+  }
 }
 
 let currentRemoveEmpId = null;
@@ -446,7 +472,9 @@ function closeModal() {
   document.getElementById('modal').style.display = 'none';
   document.getElementById('inputId').value = '';
   document.getElementById('inputName').value = '';
-  document.getElementById('inputDept').value = '';
+  document.getElementById('inputDept').value = 'STOD';
+  document.getElementById('inputPosition').value = '';
+  document.getElementById('inputEligibility').value = '';
   document.getElementById('inputDate').value = '';
   document.getElementById('inputSalary').value = '';
 
@@ -464,94 +492,212 @@ function closeModalOutside(e) {
 
 // ─── Promotion & Demotion Engine ───
 
-function handlePromote(id) {
+let currentDemoteEmpId = null;
+
+function openDemoteModal(id) {
   const emp = employees.find(e => e.id === id);
   if (!emp) return;
 
-  emp.promotionCount = (emp.promotionCount || 0) + 1;
-  saveEmployees(employees);
-  renderAll();
-}
-
-function handleDemote(id) {
-  const emp = employees.find(e => e.id === id);
-  if (!emp) return;
-
-  let currentCount = emp.promotionCount || 0;
+  const currentCount = emp.promotionCount || 0;
   if (currentCount <= 0) {
     alert('This employee has 0 promotions and cannot be demoted further.');
     return;
   }
 
-  emp.promotionCount = currentCount - 1;
-  saveEmployees(employees);
-  renderAll();
+  currentDemoteEmpId = id;
+  const nameEl = document.getElementById('demoteEmpName');
+  if (nameEl) nameEl.textContent = emp.name;
+
+  const modal = document.getElementById('demoteModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeDemoteModal() {
+  const modal = document.getElementById('demoteModal');
+  if (modal) modal.style.display = 'none';
+  currentDemoteEmpId = null;
+}
+
+function closeDemoteModalOutside(e) {
+  if (e.target.id === 'demoteModal') closeDemoteModal();
+}
+
+function submitDemote() {
+  if (!currentDemoteEmpId) return;
+  const emp = employees.find(e => e.id === currentDemoteEmpId);
+  if (emp) {
+    emp.promotionCount = (emp.promotionCount || 0) - 1;
+    saveEmployees(employees);
+    renderAll();
+  }
+  closeDemoteModal();
 }
 
 let currentPromoteEmpId = null;
 
 function openPromoteModal(id) {
-  currentPromoteEmpId = id;
-  const emp = employees.find(e => e.id === id);
-  if (emp && emp.currentSalary) {
-    document.getElementById('inputNewSalary').value = emp.currentSalary;
-    const hint = document.getElementById('promoteHint');
-    if (hint) {
-      hint.style.color = 'var(--amber)';
-      hint.textContent = `* Must be higher than ₱${emp.currentSalary.toLocaleString()}`;
+  try {
+    currentPromoteEmpId = id;
+    const emp = employees.find(e => e.id === id);
+    const posInput = document.getElementById('inputNewPosition');
+    if (posInput) {
+      posInput.value = emp ? (emp.position || '') : '';
     }
-  } else {
-    document.getElementById('inputNewSalary').value = '';
-    document.getElementById('promoteHint').textContent = '';
+    
+    const errDiv = document.getElementById('promoteError');
+    if (errDiv) errDiv.textContent = '';
+    
+    const modal = document.getElementById('promoteModal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+    
+    if (posInput) posInput.focus();
+  } catch(e) {
+    console.error("Open Promote Modal Error:", e);
   }
-  document.getElementById('promoteModal').style.display = 'flex';
-  document.getElementById('inputNewSalary').focus();
 }
 
 function closePromoteModal() {
-  document.getElementById('promoteModal').style.display = 'none';
-  document.getElementById('inputNewSalary').value = '';
-  document.getElementById('promoteHint').textContent = '';
+  const modal = document.getElementById('promoteModal');
+  if (modal) modal.style.display = 'none';
+  
+  const posInput = document.getElementById('inputNewPosition');
+  if (posInput) posInput.value = '';
+  
+  const errDiv = document.getElementById('promoteError');
+  if (errDiv) errDiv.textContent = '';
+  
   currentPromoteEmpId = null;
 }
 
-function closePromoteModalOutside(e) {
-  if (e.target.id === 'promoteModal') closePromoteModal();
-}
-
 function submitPromotion() {
-  if (!currentPromoteEmpId) return;
-  const newSalary = parseFloat(document.getElementById('inputNewSalary').value);
-  if (isNaN(newSalary) || newSalary <= 0) {
-    alert('Please enter a valid salary amount.');
-    return;
-  }
-
-  const empIndex = employees.findIndex(e => e.id === currentPromoteEmpId);
-  if (empIndex > -1) {
-    const emp = employees[empIndex];
-
-    if (newSalary <= (emp.currentSalary || 0)) {
-      const hint = document.getElementById('promoteHint');
-      if (hint) {
-        hint.style.color = 'var(--red)';
-        hint.textContent = 'Invalid Salary: Amount must be higher than current salary.';
-      } else {
-        alert('Invalid Salary');
-      }
+  try {
+    if (!currentPromoteEmpId) return;
+    
+    const posInput = document.getElementById('inputNewPosition');
+    const newPosition = posInput ? posInput.value.trim() : '';
+    const errDiv = document.getElementById('promoteError');
+    
+    if (!newPosition) {
+      if (errDiv) errDiv.textContent = 'Please specify the new position.';
       return;
     }
 
-    if (!emp.salaryHistory) emp.salaryHistory = [emp.currentSalary];
+    const empIndex = employees.findIndex(e => e.id === currentPromoteEmpId);
+    if (empIndex > -1) {
+      const emp = employees[empIndex];
 
-    emp.currentSalary = newSalary;
-    emp.salaryHistory.push(newSalary);
-    emp.promotionCount = (emp.promotionCount || 0) + 1;
+      if (newPosition.toLowerCase() === (emp.position || '').toLowerCase()) {
+        if (errDiv) errDiv.textContent = 'Promotion rejected: already in this position.';
+        return;
+      }
 
-    saveEmployees(employees);
-    renderAll();
+      emp.position = newPosition;
+      emp.promotionCount = (emp.promotionCount || 0) + 1;
+      emp.lastPromotionDate = new Date().toISOString().split('T')[0];
+
+      saveEmployees(employees);
+      renderAll();
+    }
+    closePromoteModal();
+  } catch(e) {
+    console.error("Submit Promotion Error:", e);
   }
-  closePromoteModal();
+}
+
+// ─── Salary Update Engine ───
+
+let currentSalaryEmpId = null;
+let currentSalaryNotifKey = null;
+
+function openSalaryModal(id, notifKey = null) {
+  try {
+    currentSalaryEmpId = id;
+    currentSalaryNotifKey = notifKey;
+    const emp = employees.find(e => e.id === id);
+    const salInput = document.getElementById('inputNewSalary');
+    if (salInput) {
+      salInput.value = (emp && emp.currentSalary) ? emp.currentSalary : '';
+    }
+    
+    const hint = document.getElementById('salaryHint');
+    if (hint) {
+      if (emp && emp.currentSalary) {
+        hint.style.color = 'var(--amber)';
+        hint.textContent = `* Must be higher than ₱${emp.currentSalary.toLocaleString()}`;
+      } else {
+        hint.textContent = '';
+      }
+    }
+    
+    const modal = document.getElementById('salaryModal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+    
+    if (salInput) salInput.focus();
+  } catch(e) {
+    console.error("Open Salary Modal Error:", e);
+  }
+}
+
+function closeSalaryModal() {
+  const modal = document.getElementById('salaryModal');
+  if (modal) modal.style.display = 'none';
+  
+  const salInput = document.getElementById('inputNewSalary');
+  if (salInput) salInput.value = '';
+  
+  const hint = document.getElementById('salaryHint');
+  if (hint) hint.textContent = '';
+  
+  currentSalaryEmpId = null;
+  currentSalaryNotifKey = null;
+}
+
+function submitSalaryUpdate() {
+  try {
+    if (!currentSalaryEmpId) return;
+    
+    const salInput = document.getElementById('inputNewSalary');
+    const newSalary = salInput ? parseFloat(salInput.value) : 0;
+    if (isNaN(newSalary) || newSalary <= 0) {
+      alert('Please enter a valid salary amount.');
+      return;
+    }
+
+    const empIndex = employees.findIndex(e => e.id === currentSalaryEmpId);
+    if (empIndex > -1) {
+      const emp = employees[empIndex];
+
+      if (newSalary <= (emp.currentSalary || 0)) {
+        const hint = document.getElementById('salaryHint');
+        if (hint) {
+          hint.style.color = 'var(--red)';
+          hint.textContent = 'Invalid: Amount must be higher than current salary.';
+        } else {
+          alert('Invalid Salary: Amount must be higher than current salary.');
+        }
+        return;
+      }
+
+      if (!emp.salaryHistory) emp.salaryHistory = [emp.currentSalary];
+
+      emp.currentSalary = newSalary;
+      emp.salaryHistory.push(newSalary);
+
+      if (currentSalaryNotifKey) {
+        dismissNotif(currentSalaryNotifKey);
+      }
+
+      saveEmployees(employees);
+      renderAll();
+    }
+    closeSalaryModal();
+  } catch(e) {
+    console.error("Submit Salary Error:", e);
+  }
 }
 
 let currentEditEmpId = null;
@@ -562,7 +708,9 @@ function openEditModal(id) {
   if (!emp) return;
   document.getElementById('editId').value = emp.employeeId || '';
   document.getElementById('editName').value = emp.name || '';
-  document.getElementById('editDept').value = emp.department || '';
+  document.getElementById('editDept').value = emp.division || 'STOD';
+  document.getElementById('editPosition').value = emp.position || '';
+  document.getElementById('editEligibility').value = emp.eligibility || '';
   document.getElementById('editDate').value = emp.startDate || '';
   document.getElementById('editSalary').value = emp.currentSalary || '';
   document.getElementById('editModal').style.display = 'flex';
@@ -584,7 +732,9 @@ function submitEditEmployee() {
 
   const empIdText = document.getElementById('editId').value.trim();
   const name = document.getElementById('editName').value.trim();
-  const dept = document.getElementById('editDept').value.trim();
+  const dept = document.getElementById('editDept').value;
+  const position = document.getElementById('editPosition').value.trim();
+  const eligibility = document.getElementById('editEligibility').value.trim();
   const date = document.getElementById('editDate').value;
   const salaryInput = document.getElementById('editSalary').value;
 
@@ -598,7 +748,9 @@ function submitEditEmployee() {
 
   emp.employeeId = empIdText || '—';
   emp.name = name;
-  emp.department = dept;
+  emp.division = dept;
+  emp.position = position;
+  emp.eligibility = eligibility;
   emp.startDate = date;
 
   const newSalary = parseFloat(salaryInput) || 0;
@@ -610,6 +762,64 @@ function submitEditEmployee() {
   closeEditModal();
   renderAll();
 }
+
+// ─── Duplicate Resolution Engine ──────────────────────────────────────────────
+
+let duplicateQueue = [];
+let currentDuplicateItem = null;
+let duplicateQueueOnComplete = null;
+
+function checkDuplicate(newEmp) {
+  return employees.find(e => 
+    (e.name.toLowerCase() === newEmp.name.toLowerCase()) || 
+    (e.employeeId !== '—' && newEmp.employeeId !== '—' && e.employeeId === newEmp.employeeId)
+  );
+}
+
+function processDuplicateQueue() {
+  if (duplicateQueue.length === 0) {
+    document.getElementById('duplicateModal').style.display = 'none';
+    if (duplicateQueueOnComplete) duplicateQueueOnComplete();
+    duplicateQueueOnComplete = null;
+    return;
+  }
+
+  currentDuplicateItem = duplicateQueue.shift();
+  const { oldEmp, newEmp } = currentDuplicateItem;
+
+  document.getElementById('dupOldId').textContent = oldEmp.employeeId || '—';
+  document.getElementById('dupOldName').textContent = oldEmp.name || '—';
+  document.getElementById('dupOldDiv').textContent = oldEmp.division || '—';
+  document.getElementById('dupOldPos').textContent = oldEmp.position || '—';
+  document.getElementById('dupOldDate').textContent = formatDate(oldEmp.startDate) || '—';
+  document.getElementById('dupOldSal').textContent = formatCurrency(oldEmp.currentSalary || 0);
+
+  document.getElementById('dupNewId').textContent = newEmp.employeeId || '—';
+  document.getElementById('dupNewName').textContent = newEmp.name || '—';
+  document.getElementById('dupNewDiv').textContent = newEmp.division || '—';
+  document.getElementById('dupNewPos').textContent = newEmp.position || '—';
+  document.getElementById('dupNewDate').textContent = formatDate(newEmp.startDate) || '—';
+  document.getElementById('dupNewSal').textContent = formatCurrency(newEmp.currentSalary || 0);
+
+  document.getElementById('duplicateModal').style.display = 'flex';
+}
+
+function resolveDuplicate(choice) {
+  if (!currentDuplicateItem) return;
+
+  const { oldEmp, newEmp } = currentDuplicateItem;
+
+  if (choice === 'keepNew') {
+    const index = employees.findIndex(e => e.id === oldEmp.id);
+    if (index > -1) {
+      // Overwrite entirely, retaining the original ID so lists don't break
+      employees[index] = { ...newEmp, id: oldEmp.id };
+    }
+  }
+
+  processDuplicateQueue();
+}
+
 
 // ─── Modal Tabs & CSV Import ────────────────────────────────────────────────
 
@@ -653,19 +863,35 @@ function handleCsvUpload(event) {
     const text = e.target.result;
     const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
     if (lines.length < 2) {
-      alert("The CSV file seems to be empty or missing data.");
+      const succ = document.getElementById('csvSuccess');
+      if (succ) {
+         succ.textContent = "The CSV file seems to be empty or missing data.";
+         succ.style.display = 'block';
+         succ.style.background = 'var(--red)';
+      } else {
+         alert("The CSV file seems to be empty or missing data.");
+      }
       return;
     }
 
     const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
     const idIdx = headers.indexOf('id');
     const nameIdx = headers.indexOf('name');
-    const deptIdx = headers.indexOf('department');
+    const deptIdx = headers.indexOf('division');
+    const posIdx = headers.indexOf('position');
+    const eligIdx = headers.indexOf('eligibility');
     const dateIdx = headers.indexOf('start date');
     const salaryIdx = headers.indexOf('salary');
 
     if (nameIdx === -1 || dateIdx === -1 || salaryIdx === -1) {
-      alert("CSV must contain exactly these headers: ID, Name, Department, Start Date, Salary. (Check your spelling)");
+      const succ = document.getElementById('csvSuccess');
+      if (succ) {
+         succ.textContent = "CSV must exact exactly these headers: ID, Name, Division, Position, Eligibility, Start Date, Salary.";
+         succ.style.display = 'block';
+         succ.style.background = 'var(--red)';
+      } else {
+         alert("CSV must contain exactly these headers: ID, Name, Division, Position, Eligibility, Start Date, Salary. (Check your spelling)");
+      }
       return;
     }
 
@@ -678,6 +904,8 @@ function handleCsvUpload(event) {
       const csvId = idIdx > -1 ? (row[idIdx] || '').trim() : '';
       const name = nameIdx > -1 ? (row[nameIdx] || '').trim() : '';
       const dept = deptIdx > -1 ? (row[deptIdx] || '').trim() : '';
+      const pos = posIdx > -1 ? (row[posIdx] || '').trim() : '';
+      const elig = eligIdx > -1 ? (row[eligIdx] || '').trim() : '';
       const rawDate = dateIdx > -1 ? (row[dateIdx] || '').trim() : '';
       const rawSalary = salaryIdx > -1 ? (row[salaryIdx] || '').trim().replace(/[^0-9.-]+/g, "") : '';
 
@@ -692,25 +920,66 @@ function handleCsvUpload(event) {
 
       const currentSalary = parseFloat(rawSalary) || 0;
 
-      employees.push({
+      const newEmp = {
         id: Date.now().toString() + i, // Force unique ID per batch line
         employeeId: csvId || '—',
         name,
-        department: dept,
+        division: dept,
+        position: pos,
+        eligibility: elig,
         startDate: formattedDate,
         currentSalary,
         promotionCount: 0
-      });
+      };
+
+      const oldEmp = checkDuplicate(newEmp);
+      if (oldEmp) {
+        duplicateQueue.push({ oldEmp, newEmp });
+      } else {
+        employees.push(newEmp);
+      }
+      
       importedCount++;
     }
 
+    const showCsvSuccess = (count) => {
+      const succ = document.getElementById('csvSuccess');
+      if (succ) {
+        succ.textContent = `Success! Imported ${count} employees.`;
+        succ.style.display = 'block';
+        succ.style.background = 'var(--teal)';
+        setTimeout(() => {
+          succ.style.display = 'none';
+          closeModal();
+        }, 1500);
+      } else {
+        alert(`Success! Imported ${count} employees.`);
+        closeModal();
+      }
+    };
+
     if (importedCount > 0) {
-      saveEmployees(employees);
-      renderAll();
-      alert(`Success! Imported ${importedCount} employees.`);
-      closeModal();
+      if (duplicateQueue.length > 0) {
+        duplicateQueueOnComplete = () => {
+          saveEmployees(employees);
+          renderAll();
+          showCsvSuccess(importedCount);
+        };
+        processDuplicateQueue();
+      } else {
+        saveEmployees(employees);
+        renderAll();
+        showCsvSuccess(importedCount);
+      }
     } else {
-      alert("No valid employee records found to import.");
+      const succ = document.getElementById('csvSuccess');
+      if (succ) {
+         succ.textContent = "No valid employee records found to import.";
+         succ.style.display = 'block';
+         succ.style.background = 'var(--red)';
+      } else {
+         alert("No valid employee records found to import.");
+      }
     }
   };
 
