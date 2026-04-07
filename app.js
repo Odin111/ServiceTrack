@@ -1339,21 +1339,48 @@ renderAll();
 
 // ─── Scroll to Top ──────────────────────────────────────────────────────────
 
-window.addEventListener('scroll', function () {
+function checkScrollVisibility() {
   const btn = document.getElementById("scrollToTopBtn");
   if (!btn) return;
-  // Show button if scrolled down 300px
-  if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+  let cardScrolled = false;
+  document.querySelectorAll('.table-card').forEach(c => {
+    if (c.scrollTop > 200) cardScrolled = true;
+  });
+  if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200 || cardScrolled) {
     btn.classList.add("visible");
   } else {
     btn.classList.remove("visible");
   }
+}
+
+window.addEventListener('scroll', checkScrollVisibility);
+
+document.querySelectorAll('.table-card').forEach(card => {
+  card.addEventListener('scroll', checkScrollVisibility);
 });
 
 function fastScrollToTop() {
   const c = document.documentElement.scrollTop || document.body.scrollTop;
-  if (c > 0) {
-    window.requestAnimationFrame(fastScrollToTop);
+  let scrolling = false;
+
+  if (c > 1) {
     window.scrollTo(0, c - c / 4); // The divisor (4) controls speed. Lower = faster.
+    scrolling = true;
+  } else if (c > 0) {
+    window.scrollTo(0, 0);
+  }
+
+  document.querySelectorAll('.table-card').forEach(card => {
+    const cardTop = card.scrollTop;
+    if (cardTop > 1) {
+      card.scrollTop = cardTop - cardTop / 4;
+      scrolling = true;
+    } else if (cardTop > 0) {
+      card.scrollTop = 0;
+    }
+  });
+
+  if (scrolling) {
+    window.requestAnimationFrame(fastScrollToTop);
   }
 }
