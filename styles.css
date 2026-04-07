@@ -1246,7 +1246,7 @@ html[data-theme="dark"] body::before {
   }
   .sidebar.mobile-open {
     transform: translateX(0);
-    box-shadow: 0 0 0 2000px rgba(15, 23, 42, 0.5);
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.4);
   }
   
   .sidebar .nav-text, 
@@ -1324,6 +1324,25 @@ html[data-theme="dark"] body::before {
 
   .history-modal-footer .spacer {
     display: none;
+  }
+  
+  .duplicate-columns {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .dup-action-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .dup-action-title {
+    margin-right: 0;
+    margin-bottom: 8px;
+  }
+  
+  .dup-action-group button {
+    width: 100%;
   }
 }
 
@@ -1433,13 +1452,71 @@ html[data-theme="dark"] body::before {
 }
 
 /* ─── Ultra-optimized Theme Switching ─── */
-/* Disables individual element CSS transitions to bypass DOM lag, letting View Transitions API handle crossfade */
 html.theme-transitioning * {
   transition: none !important;
 }
 
-/* Optional: Tune the View Transition crossfade animation duration */
+html.theme-transitioning .sidebar,
+html.theme-transitioning .table-card,
+html.theme-transitioning .modal,
+html.theme-transitioning .modal-island {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--surface-solid) !important;
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 0.35s;
+}
+
+/* ─── Duplicate Modal Footer Classes ─── */
+.dup-footer {
+  flex-direction: column;
+  gap: 16px;
+  background: var(--bg-top);
+}
+.dup-action-group {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.dup-action-title {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 14px;
+  margin-right: auto;
+}
+.dup-divider {
+  height: 1px;
+  background: var(--border-strong);
+  width: 100%;
+}
+.dup-btn-both {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: var(--teal-light);
+}
+
+.dup-btn-cancel {
+  background: linear-gradient(135deg, var(--red), #dc2626);
+  border: none;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+.dup-btn-addall {
+  background: linear-gradient(135deg, var(--teal), #059669);
+  border: none;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+.dup-btn-keepall {
+  border-color: var(--text-muted);
+  color: var(--text-muted);
+}
+.dup-btn-overwriteall {
+  background: linear-gradient(135deg, var(--amber), #d97706);
+  border: none;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
 }

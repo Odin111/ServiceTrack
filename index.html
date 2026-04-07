@@ -402,20 +402,20 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer" style="flex-direction: column; gap: 16px; background: var(--bg-top);">
-        <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center; width: 100%; flex-wrap: wrap;">
-          <span style="font-weight: 700; color: var(--text); font-size: 14px; margin-right: auto;">This Record:</span>
-          <button class="btn-outline" style="border-color: var(--teal); color: var(--teal); background: var(--teal-light);" onclick="resolveDuplicate('addBoth')">Add Both</button>
-          <button class="btn-outline" onclick="resolveDuplicate('keepOld')">Keep Old</button>
-          <button class="btn-primary" onclick="resolveDuplicate('keepNew')">Overwrite</button>
+      <div class="modal-footer dup-footer">
+        <div class="dup-action-group">
+          <span class="dup-action-title">This Record:</span>
+          <button class="btn-outline dup-btn-both" onclick="resolveDuplicate('addBoth')">Add Both</button>
+          <button class="btn-outline dup-btn-keep" onclick="resolveDuplicate('keepOld')">Keep Old</button>
+          <button class="btn-primary dup-btn-overwrite" onclick="resolveDuplicate('keepNew')">Overwrite</button>
         </div>
-        <div style="height: 1px; background: var(--border-strong); width: 100%;"></div>
-        <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center; width: 100%; flex-wrap: wrap;">
-          <span style="font-weight: 700; color: var(--text); font-size: 14px; margin-right: auto;">All Records:</span>
-          <button class="btn-primary" style="background: linear-gradient(135deg, var(--red), #dc2626); border: none; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="resolveDuplicate('cancelImport')">Cancel Import</button>
-          <button class="btn-primary" style="background: linear-gradient(135deg, var(--teal), #059669); border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);" onclick="resolveDuplicate('addAll')">Add All</button>
-          <button class="btn-outline" style="border-color: var(--text-muted); color: var(--text-muted);" onclick="resolveDuplicate('keepAllOld')">Keep All Old</button>
-          <button class="btn-primary" style="background: linear-gradient(135deg, var(--amber), #d97706); border: none; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);" onclick="resolveDuplicate('overrideAllNew')">Overwrite All</button>
+        <div class="dup-divider"></div>
+        <div class="dup-action-group">
+          <span class="dup-action-title">All Records:</span>
+          <button class="btn-primary dup-btn-cancel" onclick="resolveDuplicate('cancelImport')">Cancel Import</button>
+          <button class="btn-primary dup-btn-addall" onclick="resolveDuplicate('addAll')">Add All</button>
+          <button class="btn-outline dup-btn-keepall" onclick="resolveDuplicate('keepAllOld')">Keep All Old</button>
+          <button class="btn-primary dup-btn-overwriteall" onclick="resolveDuplicate('overrideAllNew')">Overwrite All</button>
         </div>
       </div>
     </div>
