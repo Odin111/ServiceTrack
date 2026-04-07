@@ -42,7 +42,6 @@ let employees = loadEmployees();
 let dismissed = loadDismissed();
 let deletedNotifs = loadDeleted();
 
-let isHistoryMode = false;
 let notifSearchTerm = '';
 let historySearchTerm = '';
 let currentHistoryTab = 'loyalty';
@@ -230,10 +229,16 @@ function renderTable() {
   if (searchInput) {
     const q = searchInput.value.toLowerCase().trim();
     if (q) {
+      const searchField = document.querySelector('input[name="empSearchField"]:checked')?.value || 'name';
       currentEmployees = currentEmployees.filter(emp => {
-        return (emp.name && emp.name.toLowerCase().includes(q)) ||
-          (emp.employeeId && emp.employeeId.toLowerCase().includes(q)) ||
-          (emp.division && emp.division.toLowerCase().includes(q));
+        const matchName = emp.name && emp.name.toLowerCase().includes(q);
+        const matchId = emp.employeeId && emp.employeeId.toLowerCase().includes(q);
+        const matchDiv = emp.division && emp.division.toLowerCase().includes(q);
+        
+        if (searchField === 'name') return matchName;
+        if (searchField === 'id') return matchId;
+        if (searchField === 'division') return matchDiv;
+        return false;
       });
     }
   }
@@ -476,6 +481,7 @@ function addEmployee() {
 
   const oldEmp = checkDuplicate(newEmp);
   if (oldEmp) {
+    backupEmployeesBeforeImport = [...employees];
     duplicateQueue = [{ oldEmp, newEmp }];
     duplicateQueueOnComplete = () => {
       saveEmployees(employees);
@@ -548,11 +554,6 @@ function dismissNotif(key) {
   renderAll();
 }
 
-function clearAllDismissed() {
-  dismissed = [];
-  saveDismissed(dismissed);
-  renderAll();
-}
 
 function openDismissAllModal() {
   document.getElementById('dismissAllModal').style.display = 'flex';
@@ -593,11 +594,17 @@ function handleNotifSearch() {
 
 function openHistoryModal() {
   document.getElementById('historyModal').style.display = 'flex';
+  historySearchTerm = '';
+  const searchInput = document.getElementById('historySearchInput');
+  if (searchInput) searchInput.value = '';
   renderHistoryContent();
 }
 
 function closeHistoryModal() {
   document.getElementById('historyModal').style.display = 'none';
+  historySearchTerm = '';
+  const searchInput = document.getElementById('historySearchInput');
+  if (searchInput) searchInput.value = '';
 }
 
 function closeHistoryModalOutside(e) {
@@ -1054,6 +1061,7 @@ function submitEditEmployee() {
 let duplicateQueue = [];
 let currentDuplicateItem = null;
 let duplicateQueueOnComplete = null;
+let backupEmployeesBeforeImport = null;
 
 function checkDuplicate(newEmp) {
   return employees.find(e =>
@@ -1067,6 +1075,7 @@ function processDuplicateQueue() {
     document.getElementById('duplicateModal').style.display = 'none';
     if (duplicateQueueOnComplete) duplicateQueueOnComplete();
     duplicateQueueOnComplete = null;
+    backupEmployeesBeforeImport = null;
     return;
   }
 
@@ -1090,19 +1099,114 @@ function processDuplicateQueue() {
   document.getElementById('duplicateModal').style.display = 'flex';
 }
 
+let pendingBulkAction = null;
+
+function promptBulkConfirm(action, title, message, btnText, bgGradient) {
+  pendingBulkAction = action;
+  const tEl = document.getElementById('bulkConfirmTitle');
+  const mEl = document.getElementById('bulkConfirmMessage');
+  const bEl = document.getElementById('bulkConfirmBtn');
+  
+  if (tEl) tEl.textContent = title;
+  if (mEl) mEl.innerHTML = message;
+  if (bEl) {
+    bEl.textContent = btnText;
+    bEl.style.background = bgGradient;
+    bEl.style.borderColor = 'transparent';
+    bEl.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
+  }
+  document.getElementById('bulkConfirmModal').style.display = 'flex';
+}
+
+function closeBulkConfirm() {
+  document.getElementById('bulkConfirmModal').style.display = 'none';
+  pendingBulkAction = null;
+}
+
+function closeBulkConfirmOutside(e) {
+  if (e.target.id === 'bulkConfirmModal') closeBulkConfirm();
+}
+
+function executeBulkConfirm() {
+  const action = pendingBulkAction;
+  closeBulkConfirm();
+  if (action) executeResolveDuplicate(action);
+}
+
 function resolveDuplicate(choice) {
+  if (choice === 'cancelImport') {
+    promptBulkConfirm('cancelImport', 'Cancel Import', 'Are you sure you want to cancel the entire import? <br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">No new data will be added and the database will be reverted.</span>', 'Yes, Cancel', 'linear-gradient(135deg, var(--red), #dc2626)');
+    return;
+  } else if (choice === 'keepAllOld') {
+    promptBulkConfirm('keepAllOld', 'Keep All Old', 'Are you sure you want to discard <strong>ALL</strong> remaining new duplicates and keep your existing records?', 'Yes, Keep Old', 'linear-gradient(135deg, var(--text-muted), #475569)');
+    return;
+  } else if (choice === 'overrideAllNew') {
+    promptBulkConfirm('overrideAllNew', 'Overwrite All', 'Are you sure you want to <strong>OVERWRITE ALL</strong> remaining duplicate matches with the newly imported data? <br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">This cannot be undone.</span>', 'Yes, Overwrite All', 'linear-gradient(135deg, var(--amber), #d97706)');
+    return;
+  } else if (choice === 'addAll') {
+    promptBulkConfirm('addAll', 'Add All', 'Are you sure you want to <strong>ADD ALL</strong> remaining duplicates alongside existing records? This will create exact duplicate entries in the system.', 'Yes, Add All', 'linear-gradient(135deg, var(--teal), #059669)');
+    return;
+  }
+  executeResolveDuplicate(choice);
+}
+
+function executeResolveDuplicate(choice) {
   if (!currentDuplicateItem) return;
 
   const { oldEmp, newEmp } = currentDuplicateItem;
 
-  if (choice === 'keepNew') {
+  if (choice === 'cancelImport') {
+    
+    if (backupEmployeesBeforeImport) {
+      employees = [...backupEmployeesBeforeImport];
+    }
+    duplicateQueue = [];
+    document.getElementById('duplicateModal').style.display = 'none';
+    duplicateQueueOnComplete = null;
+    backupEmployeesBeforeImport = null;
+    
+    const succ = document.getElementById('csvSuccess');
+    if (succ && document.getElementById('modal').style.display !== 'none') {
+      succ.innerHTML = `Import was successfully canceled.<br>No data was added.`;
+      succ.style.display = 'block';
+      succ.style.background = 'var(--red)';
+      
+      setTimeout(() => {
+        succ.style.display = 'none';
+        closeModal();
+      }, 2500);
+    } else {
+      alert('Import was successfully canceled. No data was added.');
+    }
+    
+    renderAll();
+    return;
+  } else if (choice === 'keepAllOld') {
+    duplicateQueue = [];
+  } else if (choice === 'overrideAllNew') {
     const index = employees.findIndex(e => e.id === oldEmp.id);
     if (index > -1) {
-      // Overwrite entirely, retaining the original ID so lists don't break
+      employees[index] = { ...newEmp, id: oldEmp.id };
+    }
+    duplicateQueue.forEach(item => {
+      const idx = employees.findIndex(e => e.id === item.oldEmp.id);
+      if (idx > -1) {
+        employees[idx] = { ...item.newEmp, id: item.oldEmp.id };
+      }
+    });
+    duplicateQueue = [];
+  } else if (choice === 'addAll') {
+    employees.push(newEmp);
+    duplicateQueue.forEach(item => {
+      employees.push(item.newEmp);
+    });
+    duplicateQueue = [];
+  } else if (choice === 'keepNew') {
+    const index = employees.findIndex(e => e.id === oldEmp.id);
+    if (index > -1) {
       employees[index] = { ...newEmp, id: oldEmp.id };
     }
   } else if (choice === 'addBoth') {
-    // Inject the new employee alongside the old one
     employees.push(newEmp);
   }
 
@@ -1185,6 +1289,8 @@ function handleCsvUpload(event) {
       }
       return;
     }
+
+    backupEmployeesBeforeImport = [...employees];
 
     let importedCount = 0;
     for (let i = 1; i < lines.length; i++) {
@@ -1297,12 +1403,30 @@ function initTheme() {
   updateThemeIcon(savedTheme);
 }
 
-function toggleTheme() {
+function executeThemeToggle() {
   const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
   const newTheme = currentTheme === 'light' ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', newTheme);
   localStorage.setItem('servicetrack_theme', newTheme);
   updateThemeIcon(newTheme);
+}
+
+function toggleTheme() {
+  if (document.startViewTransition) {
+    document.documentElement.classList.add('theme-transitioning');
+    const transition = document.startViewTransition(() => {
+      executeThemeToggle();
+    });
+    transition.finished.finally(() => {
+      document.documentElement.classList.remove('theme-transitioning');
+    });
+  } else {
+    document.documentElement.classList.add('theme-transitioning');
+    executeThemeToggle();
+    setTimeout(() => {
+      document.documentElement.classList.remove('theme-transitioning');
+    }, 50);
+  }
 }
 
 function updateThemeIcon(theme) {

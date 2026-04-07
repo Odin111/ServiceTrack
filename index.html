@@ -76,15 +76,33 @@
             <p class="page-sub">Manage employee records and service dates</p>
           </div>
           <div style="display:flex; gap:12px;">
-            <button class="btn-outline" style="color:var(--red); border-color:var(--red);" onclick="openDeleteAllModal()">Delete All</button>
+            <button class="btn-outline" style="color:var(--red); border-color:var(--red);"
+              onclick="openDeleteAllModal()">Delete All</button>
             <button class="btn-primary" onclick="openModal()">+ Add Employee</button>
           </div>
         </div>
-        
-        <div class="controls-row">
-          <div class="search-wrap">
-            <span class="search-icon">&#128269;</span>
-            <input type="text" id="empSearchInput" class="custom-input" placeholder="Search by Name, ID, or Division..." oninput="renderTable()">
+
+        <div class="controls-row" style="align-items: flex-start;">
+          <div style="flex: 1; display:flex; flex-direction:column; gap:8px;">
+            <div class="search-wrap" style="width: 100%;">
+              <span class="search-icon">&#128269;</span>
+              <input type="text" id="empSearchInput" class="custom-input" placeholder="Search..."
+                oninput="renderTable()">
+            </div>
+            <div class="search-options" style="display: flex; gap: 16px; font-size: 14px; padding-left: 4px;">
+              <label style="color: var(--text); display:flex; align-items:center; gap:4px; cursor:pointer;">
+                <input type="radio" name="empSearchField" value="name" checked
+                  onchange="renderTable(); document.getElementById('empSearchInput').focus();"> Name
+              </label>
+              <label style="color: var(--text); display:flex; align-items:center; gap:4px; cursor:pointer;">
+                <input type="radio" name="empSearchField" value="id"
+                  onchange="renderTable(); document.getElementById('empSearchInput').focus();"> ID
+              </label>
+              <label style="color: var(--text); display:flex; align-items:center; gap:4px; cursor:pointer;">
+                <input type="radio" name="empSearchField" value="division"
+                  onchange="renderTable(); document.getElementById('empSearchInput').focus();"> Division
+              </label>
+            </div>
           </div>
           <div class="sort-wrap">
             <span class="sort-icon">&#8645;</span>
@@ -131,22 +149,26 @@
             <p class="page-sub">Admin alerts for service milestones</p>
           </div>
           <div style="display:flex; gap:12px; align-items:center;">
-             <button class="btn-outline" style="border-color: var(--text-muted); color: var(--text-muted);" onclick="openDismissAllModal()">Dismiss all</button>
-             <button class="btn-outline" onclick="openHistoryModal()">History</button>
+            <button class="btn-outline" style="border-color: var(--text-muted); color: var(--text-muted);"
+              onclick="openDismissAllModal()">Dismiss all</button>
+            <button class="btn-outline" onclick="openHistoryModal()">History</button>
           </div>
         </div>
 
         <div class="controls-row" style="margin-bottom: 24px;">
-           <div class="search-wrap" style="flex:1;">
-             <span class="search-icon">&#128269;</span>
-             <input type="text" id="notifSearchInput" class="custom-input" placeholder="Search by Employee Name..." oninput="handleNotifSearch()">
-           </div>
+          <div class="search-wrap" style="flex:1;">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="notifSearchInput" class="custom-input" placeholder="Search by Employee Name..."
+              oninput="handleNotifSearch()">
+          </div>
         </div>
 
         <div class="tab-nav">
-          <button class="tab-btn active" id="notifTabLoyalty" onclick="switchNotifTab('loyalty')">Loyalty Awards</button>
+          <button class="tab-btn active" id="notifTabLoyalty" onclick="switchNotifTab('loyalty')">Loyalty
+            Awards</button>
           <button class="tab-btn" id="notifTabSalary" onclick="switchNotifTab('salary')">Salary Updates</button>
-          <button class="tab-btn" id="notifTabUpcoming" onclick="switchNotifTab('upcoming')">Upcoming Milestones</button>
+          <button class="tab-btn" id="notifTabUpcoming" onclick="switchNotifTab('upcoming')">Upcoming
+            Milestones</button>
         </div>
         <div id="notifContainer"></div>
       </section>
@@ -184,7 +206,6 @@
             <option value="PARAD">PARAD</option>
             <option value="LTID">LTID</option>
             <option value="LEGAL">LEGAL</option>
-            <option value="HR">HR</option>
           </select>
         </div>
         <div class="form-group">
@@ -210,11 +231,15 @@
           <label for="csvFileInput" class="upload-label">
             <span class="upload-icon">&#8681;</span>
             <span class="upload-text">Select a CSV file to import employees</span>
-            <span class="upload-hint">The importer seeks specific info and <strong>automatically ignores extra columns!</strong> <br>Required columns: <strong>ID, Name, Division, Position Title, Eligibility, Steps, Date of Last Promotion, Start Date</strong></span>
+            <span class="upload-hint">The importer seeks specific info and <strong>automatically ignores extra
+                columns!</strong> <br>Required columns: <strong>ID, Name, Division, Position Title, Eligibility, Steps,
+                Date of Last Promotion, Start Date</strong></span>
           </label>
           <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleCsvUpload(event)" />
         </div>
-        <div id="csvSuccess" style="display:none; padding:12px; border-radius:8px; background:var(--teal); color:#fff; text-align:center; font-size:14px; margin-top:16px;"></div>
+        <div id="csvSuccess"
+          style="display:none; padding:12px; border-radius:8px; background:var(--teal); color:#fff; text-align:center; font-size:14px; margin-top:16px;">
+        </div>
       </div>
 
       <div class="modal-footer" id="footerManual">
@@ -248,7 +273,6 @@
             <option value="PARAD">PARAD</option>
             <option value="LTID">LTID</option>
             <option value="LEGAL">LEGAL</option>
-            <option value="HR">HR</option>
           </select>
         </div>
         <div class="form-group">
@@ -322,11 +346,14 @@
         <h2 class="modal-title">Demote Employee</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 15px;">Are you sure you want to demote <strong id="demoteEmpName">this employee</strong>? <br><span style="color: var(--text-muted); font-size: 13px;">This will reverse their job title and reduce their Step count.</span></p>
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to demote <strong id="demoteEmpName">this
+            employee</strong>? <br><span style="color: var(--text-muted); font-size: 13px;">This will reverse their job
+            title and reduce their Step count.</span></p>
       </div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeDemoteModal()">Cancel</button>
-        <button class="btn-primary" style="background: var(--amber); border-color: var(--amber);" onclick="submitDemote()">Confirm Demotion</button>
+        <button class="btn-primary" style="background: var(--amber); border-color: var(--amber);"
+          onclick="submitDemote()">Confirm Demotion</button>
       </div>
     </div>
   </div>
@@ -338,35 +365,58 @@
         <h2 class="modal-title" style="color: var(--amber);">Duplicate Detected</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 14px; margin-bottom: 0;">An exact match for Name or ID was found. Please compare and choose which record to keep.</p>
+        <p style="color: var(--text); font-size: 14px; margin-bottom: 0;">An exact match for Name or ID was found.
+          Please compare and choose which record to keep.</p>
         <div class="duplicate-columns">
           <!-- Old Record -->
           <div class="dup-col">
             <div class="dup-title old">Old Record (In Database)</div>
-            <div class="dup-field"><span class="dup-label">ID Number</span><span class="dup-value" id="dupOldId"></span></div>
-            <div class="dup-field"><span class="dup-label">Name</span><span class="dup-value" id="dupOldName"></span></div>
-            <div class="dup-field"><span class="dup-label">Division</span><span class="dup-value" id="dupOldDiv"></span></div>
-            <div class="dup-field"><span class="dup-label">Position</span><span class="dup-value" id="dupOldPos"></span></div>
-            <div class="dup-field"><span class="dup-label">Start Date</span><span class="dup-value" id="dupOldDate"></span></div>
-            <div class="dup-field"><span class="dup-label">Salary</span><span class="dup-value" id="dupOldSal"></span></div>
+            <div class="dup-field"><span class="dup-label">ID Number</span><span class="dup-value" id="dupOldId"></span>
+            </div>
+            <div class="dup-field"><span class="dup-label">Name</span><span class="dup-value" id="dupOldName"></span>
+            </div>
+            <div class="dup-field"><span class="dup-label">Division</span><span class="dup-value" id="dupOldDiv"></span>
+            </div>
+            <div class="dup-field"><span class="dup-label">Position</span><span class="dup-value" id="dupOldPos"></span>
+            </div>
+            <div class="dup-field"><span class="dup-label">Start Date</span><span class="dup-value"
+                id="dupOldDate"></span></div>
+            <div class="dup-field"><span class="dup-label">Salary</span><span class="dup-value" id="dupOldSal"></span>
+            </div>
           </div>
           <!-- New Record -->
           <div class="dup-col">
             <div class="dup-title new">New Record (Incoming)</div>
-            <div class="dup-field"><span class="dup-label">ID Number</span><span class="dup-value" id="dupNewId"></span></div>
-            <div class="dup-field"><span class="dup-label">Name</span><span class="dup-value" id="dupNewName"></span></div>
-            <div class="dup-field"><span class="dup-label">Division</span><span class="dup-value" id="dupNewDiv"></span></div>
-            <div class="dup-field"><span class="dup-label">Position</span><span class="dup-value" id="dupNewPos"></span></div>
-            <div class="dup-field"><span class="dup-label">Start Date</span><span class="dup-value" id="dupNewDate"></span></div>
-            <div class="dup-field"><span class="dup-label">Salary</span><span class="dup-value" id="dupNewSal"></span></div>
+            <div class="dup-field"><span class="dup-label">ID Number</span><span class="dup-value" id="dupNewId"></span>
+            </div>
+            <div class="dup-field"><span class="dup-label">Name</span><span class="dup-value" id="dupNewName"></span>
+            </div>
+            <div class="dup-field"><span class="dup-label">Division</span><span class="dup-value" id="dupNewDiv"></span>
+            </div>
+            <div class="dup-field"><span class="dup-label">Position</span><span class="dup-value" id="dupNewPos"></span>
+            </div>
+            <div class="dup-field"><span class="dup-label">Start Date</span><span class="dup-value"
+                id="dupNewDate"></span></div>
+            <div class="dup-field"><span class="dup-label">Salary</span><span class="dup-value" id="dupNewSal"></span>
+            </div>
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-outline" style="border-color: var(--teal); color: var(--teal);" onclick="resolveDuplicate('addBoth')">Add Both</button>
-        <div style="flex:1;"></div>
-        <button class="btn-outline" onclick="resolveDuplicate('keepOld')">Keep Old (Discard New)</button>
-        <button class="btn-primary" onclick="resolveDuplicate('keepNew')">Overwrite With New</button>
+      <div class="modal-footer" style="flex-direction: column; gap: 16px; background: var(--bg-top);">
+        <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center; width: 100%; flex-wrap: wrap;">
+          <span style="font-weight: 700; color: var(--text); font-size: 14px; margin-right: auto;">This Record:</span>
+          <button class="btn-outline" style="border-color: var(--teal); color: var(--teal); background: var(--teal-light);" onclick="resolveDuplicate('addBoth')">Add Both</button>
+          <button class="btn-outline" onclick="resolveDuplicate('keepOld')">Keep Old</button>
+          <button class="btn-primary" onclick="resolveDuplicate('keepNew')">Overwrite</button>
+        </div>
+        <div style="height: 1px; background: var(--border-strong); width: 100%;"></div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; align-items: center; width: 100%; flex-wrap: wrap;">
+          <span style="font-weight: 700; color: var(--text); font-size: 14px; margin-right: auto;">All Records:</span>
+          <button class="btn-primary" style="background: linear-gradient(135deg, var(--red), #dc2626); border: none; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="resolveDuplicate('cancelImport')">Cancel Import</button>
+          <button class="btn-primary" style="background: linear-gradient(135deg, var(--teal), #059669); border: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);" onclick="resolveDuplicate('addAll')">Add All</button>
+          <button class="btn-outline" style="border-color: var(--text-muted); color: var(--text-muted);" onclick="resolveDuplicate('keepAllOld')">Keep All Old</button>
+          <button class="btn-primary" style="background: linear-gradient(135deg, var(--amber), #d97706); border: none; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);" onclick="resolveDuplicate('overrideAllNew')">Overwrite All</button>
+        </div>
       </div>
     </div>
   </div>
@@ -399,23 +449,30 @@
         <h2 class="modal-title" style="color: var(--red);">Delete All Employees</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 15px;">Are you absolutely sure you want to delete <strong>ALL</strong> employee records? <br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">This action cannot be undone and will erase the entire database.</span></p>
+        <p style="color: var(--text); font-size: 15px;">Are you absolutely sure you want to delete <strong>ALL</strong>
+          employee records? <br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">This action
+            cannot be undone and will erase the entire database.</span></p>
       </div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeDeleteAllModal()">Cancel</button>
-        <button class="btn-primary" style="background: var(--red); border-color: var(--red);" onclick="confirmDeleteAll()">Yes, Delete Everything</button>
+        <button class="btn-primary" style="background: var(--red); border-color: var(--red);"
+          onclick="confirmDeleteAll()">Yes, Delete Everything</button>
       </div>
     </div>
   </div>
 
   <!-- Dismiss All Modal -->
-  <div id="dismissAllModal" class="modal-overlay" style="display:none;" onmousedown="closeDismissAllModalOutside(event)">
+  <div id="dismissAllModal" class="modal-overlay" style="display:none;"
+    onmousedown="closeDismissAllModalOutside(event)">
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title">Dismiss All Notifications</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 15px;">Are you sure you want to dismiss all active notifications? <br><span style="color: var(--text-muted); font-size: 13px;">This will remove them from your current view.</span></p>
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to dismiss all active notifications?
+          <br><span style="color: var(--text-muted); font-size: 13px;">This will remove them from your current
+            view.</span>
+        </p>
       </div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeDismissAllModal()">Cancel</button>
@@ -433,10 +490,11 @@
       </div>
       <div class="modal-body" style="padding-top:0;">
         <div class="controls-row" style="margin: 20px 0;">
-           <div class="search-wrap" style="flex:1;">
-             <span class="search-icon">&#128269;</span>
-             <input type="text" id="historySearchInput" class="custom-input" placeholder="Search in history..." oninput="handleHistorySearch()">
-           </div>
+          <div class="search-wrap" style="flex:1;">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="historySearchInput" class="custom-input" placeholder="Search in history..."
+              oninput="handleHistorySearch()">
+          </div>
         </div>
         <div class="tab-nav island-tabs">
           <button class="tab-btn active" id="histTabLoyalty" onclick="switchHistoryTab('loyalty')">Loyalty</button>
@@ -446,42 +504,67 @@
         <div id="historyContainer" style="max-height: 400px; overflow-y: auto;"></div>
       </div>
       <div class="modal-footer history-modal-footer">
-         <button class="btn-outline" style="border-color: var(--teal); color: var(--teal);" onclick="openRestoreAllModal()">Restore all</button>
-         <button class="btn-outline" style="border-color: var(--red); color: var(--red);" onclick="openClearHistoryModal()">Clear History</button>
-         <div class="spacer" style="flex:1;"></div>
-         <button class="btn-primary" onclick="closeHistoryModal()">Close Island</button>
+        <button class="btn-outline" style="border-color: var(--teal); color: var(--teal);"
+          onclick="openRestoreAllModal()">Restore all</button>
+        <button class="btn-outline" style="border-color: var(--red); color: var(--red);"
+          onclick="openClearHistoryModal()">Clear History</button>
+        <div class="spacer" style="flex:1;"></div>
+        <button class="btn-primary" onclick="closeHistoryModal()">Close Island</button>
       </div>
     </div>
   </div>
 
   <!-- Restore All Modal -->
-  <div id="restoreAllModal" class="modal-overlay" style="display:none;" onmousedown="closeRestoreAllModalOutside(event)">
+  <div id="restoreAllModal" class="modal-overlay" style="display:none;"
+    onmousedown="closeRestoreAllModalOutside(event)">
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title">Restore All Notifications</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 15px;">Are you sure you want to move <strong>ALL</strong> history items back into the Active view?</p>
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to move <strong>ALL</strong> history items
+          back into the Active view?</p>
       </div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeRestoreAllModal()">Cancel</button>
-        <button class="btn-primary" style="background: var(--teal); border-color: var(--teal);" onclick="confirmRestoreAll()">Yes, Restore All</button>
+        <button class="btn-primary" style="background: var(--teal); border-color: var(--teal);"
+          onclick="confirmRestoreAll()">Yes, Restore All</button>
       </div>
     </div>
   </div>
 
   <!-- Clear History Modal -->
-  <div id="clearHistoryModal" class="modal-overlay" style="display:none;" onmousedown="closeClearHistoryModalOutside(event)">
+  <div id="clearHistoryModal" class="modal-overlay" style="display:none;"
+    onmousedown="closeClearHistoryModalOutside(event)">
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title">Clear History permanently</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 15px;">Are you sure you want to <strong>PERMANENTLY DELETE</strong> your notification history? <br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">This action cannot be undone. These specific alerts will not show up again.</span></p>
+        <p style="color: var(--text); font-size: 15px;">Are you sure you want to <strong>PERMANENTLY DELETE</strong>
+          your notification history? <br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">This
+            action cannot be undone. These specific alerts will not show up again.</span></p>
       </div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeClearHistoryModal()">Cancel</button>
-        <button class="btn-primary" style="background: var(--red); border-color: var(--red);" onclick="confirmClearHistory()">Yes, Clear Permanently</button>
+        <button class="btn-primary" style="background: var(--red); border-color: var(--red);"
+          onclick="confirmClearHistory()">Yes, Clear Permanently</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Action Confirm Modal -->
+  <div id="bulkConfirmModal" class="modal-overlay" style="display:none; z-index: 200;" onmousedown="closeBulkConfirmOutside(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="bulkConfirmTitle">Confirm Action</h2>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text); font-size: 15px;" id="bulkConfirmMessage">Are you sure?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeBulkConfirm()">Wait, Go Back</button>
+        <button id="bulkConfirmBtn" class="btn-primary" onclick="executeBulkConfirm()">Confirm</button>
       </div>
     </div>
   </div>

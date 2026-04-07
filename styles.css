@@ -668,10 +668,6 @@ html[data-theme="dark"] body::before {
   transition: background-color 0.15s ease-out; /* Optimized: only background to avoid layout thrashing */
 }
 
-.emp-table tbody tr {
-  /* Removed wildcard transition loop to prevent massive lag */
-}
-
 .emp-table tbody tr:hover td {
   background: var(--surface-hover);
 }
@@ -1434,4 +1430,16 @@ html[data-theme="dark"] body::before {
     width: 45px;
     height: 45px;
   }
+}
+
+/* ─── Ultra-optimized Theme Switching ─── */
+/* Disables individual element CSS transitions to bypass DOM lag, letting View Transitions API handle crossfade */
+html.theme-transitioning * {
+  transition: none !important;
+}
+
+/* Optional: Tune the View Transition crossfade animation duration */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.35s;
 }
