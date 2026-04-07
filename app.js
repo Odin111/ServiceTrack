@@ -244,8 +244,6 @@ function renderTable() {
     currentEmployees.sort((a, b) => {
       const nameA = (a.name || '').toLowerCase();
       const nameB = (b.name || '').toLowerCase();
-      const divA = (a.division || '').toLowerCase();
-      const divB = (b.division || '').toLowerCase();
       const yearsA = yearsWorked(a.startDate);
       const yearsB = yearsWorked(b.startDate);
       const promoA = a.promotionCount || 0;
@@ -254,7 +252,6 @@ function renderTable() {
       switch (sortVal) {
         case 'name_asc': return nameA.localeCompare(nameB);
         case 'name_desc': return nameB.localeCompare(nameA);
-        case 'div_asc': return divA.localeCompare(divB);
         case 'years_desc': return yearsB - yearsA;
         case 'years_asc': return yearsA - yearsB;
         case 'promo_desc': return promoB - promoA;
@@ -1363,20 +1360,18 @@ function fastScrollToTop() {
   const c = document.documentElement.scrollTop || document.body.scrollTop;
   let scrolling = false;
 
-  if (c > 1) {
-    window.scrollTo(0, c - c / 4); // The divisor (4) controls speed. Lower = faster.
+  if (c > 0) {
+    window.scrollTo(0, c - Math.max(1, c / 4));
     scrolling = true;
-  } else if (c > 0) {
-    window.scrollTo(0, 0);
   }
 
   document.querySelectorAll('.table-card').forEach(card => {
     const cardTop = card.scrollTop;
-    if (cardTop > 1) {
-      card.scrollTop = cardTop - cardTop / 4;
-      scrolling = true;
-    } else if (cardTop > 0) {
-      card.scrollTop = 0;
+    if (cardTop > 0) {
+      card.scrollTop = cardTop - Math.max(1, cardTop / 4);
+      if (card.scrollTop > 0) {
+        scrolling = true;
+      }
     }
   });
 
