@@ -67,12 +67,14 @@ function nextMilestone(years) {
 }
 
 function daysUntilMilestone(startDate, milestoneYears) {
-  const target = new Date(new Date(startDate).getTime() + milestoneYears * 365.25 * 24 * 60 * 60 * 1000);
+  const target = milestoneDate(startDate, milestoneYears);
   return Math.ceil((target - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
 function milestoneDate(startDate, milestoneYears) {
-  return new Date(new Date(startDate).getTime() + milestoneYears * 365.25 * 24 * 60 * 60 * 1000);
+  const d = new Date(startDate);
+  d.setFullYear(d.getFullYear() + milestoneYears);
+  return d;
 }
 
 function getPastMilestones(years) {
@@ -98,13 +100,15 @@ function getPastSalaryMilestones(years) {
   return milestones;
 }
 
-function getSoonestEvent(startDate) {
-  const yrs = yearsWorked(startDate);
-  const nextL = nextMilestone(yrs);
-  const daysL = daysUntilMilestone(startDate, nextL.milestone);
+function getSoonestEvent(emp) {
+  const yrsL = yearsWorked(emp.startDate);
+  const nextL = nextMilestone(yrsL);
+  const daysL = daysUntilMilestone(emp.startDate, nextL.milestone);
 
-  const nextS = nextSalaryMilestone(yrs);
-  const daysS = daysUntilMilestone(startDate, nextS.milestone);
+  const baseS = emp.stepIncrementBaseDate || emp.lastPromotionDate || emp.startDate;
+  const yrsS = yearsWorked(baseS);
+  const nextS = nextSalaryMilestone(yrsS);
+  const daysS = daysUntilMilestone(baseS, nextS.milestone);
 
   if (daysS < daysL) {
     return { ...nextS, daysLeft: daysS, type: 'salary' };
@@ -117,6 +121,21 @@ function progressToNext(years) {
   if (years < 10) return (years / 10) * 100;
   const above = years - 10;
   return ((above % 5) / 5) * 100;
+}
+
+function archiveSalaryMilestones(emp) {
+  if (!emp.archivedSalaryMilestones) emp.archivedSalaryMilestones = [];
+  const baseS = emp.stepIncrementBaseDate || emp.lastPromotionDate || emp.startDate;
+  const yearsS = yearsWorked(baseS);
+  const promoCount = emp.promotionCount || 0;
+  const salKeySuffix = promoCount > 0 ? `_p${promoCount}` : '';
+
+  getPastSalaryMilestones(yearsS).forEach(m => {
+    const key = `${emp.id}_salary_${m}${salKeySuffix}`;
+    if (!emp.archivedSalaryMilestones.some(a => a.key === key)) {
+      emp.archivedSalaryMilestones.push({ milestone: m, key: key, baseDate: baseS });
+    }
+  });
 }
 
 // ─── Notifications ───────────────────────────────────────────────────────────
@@ -140,15 +159,28 @@ function getNotifications() {
     }
 
     // ─── Salary Milestones ───
-    getPastSalaryMilestones(years).forEach(m => {
-      const key = `${emp.id}_salary_${m}`;
-      notifs.push({ type: 'milestone', emp, milestone: m, key, dismissed: dismissed.includes(key), ntype: 'salary' });
+    const baseS = emp.stepIncrementBaseDate || emp.lastPromotionDate || emp.startDate;
+    const yearsS = yearsWorked(baseS);
+    const promoCount = emp.promotionCount || 0;
+    const salKeySuffix = promoCount > 0 ? `_p${promoCount}` : '';
+
+    if (emp.archivedSalaryMilestones) {
+      emp.archivedSalaryMilestones.forEach(arch => {
+        notifs.push({ type: 'milestone', emp, milestone: arch.milestone, key: arch.key, dismissed: dismissed.includes(arch.key), ntype: 'salary', archivedBaseDate: arch.baseDate });
+      });
+    }
+
+    getPastSalaryMilestones(yearsS).forEach(m => {
+      const key = `${emp.id}_salary_${m}${salKeySuffix}`;
+      if (!emp.archivedSalaryMilestones || !emp.archivedSalaryMilestones.some(a => a.key === key)) {
+        notifs.push({ type: 'milestone', emp, milestone: m, key, dismissed: dismissed.includes(key), ntype: 'salary' });
+      }
     });
 
-    const nextS = nextSalaryMilestone(years);
-    const daysS = daysUntilMilestone(emp.startDate, nextS.milestone);
+    const nextS = nextSalaryMilestone(yearsS);
+    const daysS = daysUntilMilestone(baseS, nextS.milestone);
     if (daysS > 0 && daysS <= 90) {
-      const key = `${emp.id}_upcomingsal_${nextS.milestone}`;
+      const key = `${emp.id}_upcomingsal_${nextS.milestone}${salKeySuffix}`;
       notifs.push({ type: 'upcoming', emp, milestone: nextS.milestone, daysLeft: daysS, key, dismissed: dismissed.includes(key), ntype: 'salary' });
     }
   });
@@ -173,9 +205,37 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
 }
 
-function promotionBadge(count) {
-  if (!count || count === 0) return '<span class="badge badge-gray" style="font-weight:500">Step 0</span>';
-  return `<span class="badge badge-blue">Step ${count}</span>`;
+function promotionBadge(emp) {
+  const count = emp.promotionCount || 0;
+  const badgeHTML = (!count || count === 0) 
+    ? '<span class="badge badge-gray" style="font-weight:500">Step 0</span>' 
+    : `<span class="badge badge-blue">Step ${count}</span>`;
+
+  const baseS = emp.stepIncrementBaseDate || emp.lastPromotionDate || emp.startDate;
+  const yearsS = yearsWorked(baseS);
+  const nextM = nextSalaryMilestone(yearsS).milestone;
+  const daysLeft = daysUntilMilestone(baseS, nextM);
+  
+  let timerText = '';
+  if (daysLeft <= 0) {
+    timerText = '<div style="font-size:11px; color:var(--amber); margin-top:4px; font-weight:600; white-space:nowrap;">Due Now</div>';
+  } else {
+    // Format timer cleanly
+    const yearsLeft = Math.floor(daysLeft / 365);
+    const monthsLeft = Math.floor((daysLeft % 365) / 30);
+    if (yearsLeft > 0 && monthsLeft > 0) {
+      timerText = `<div style="font-size:11px; color:var(--text-hint); margin-top:4px; white-space:nowrap;">In ${yearsLeft}y ${monthsLeft}m</div>`;
+    } else if (yearsLeft > 0) {
+      timerText = `<div style="font-size:11px; color:var(--text-hint); margin-top:4px; white-space:nowrap;">In ${yearsLeft} yrs</div>`;
+    } else {
+      timerText = `<div style="font-size:11px; color:var(--text-hint); margin-top:4px; white-space:nowrap;">In ${monthsLeft} mos</div>`;
+    }
+  }
+
+  return `<div style="display:flex; flex-direction:column; align-items:center;">
+    ${badgeHTML}
+    ${timerText}
+  </div>`;
 }
 
 function statusBadge(years) {
@@ -213,7 +273,7 @@ function renderUpcoming() {
       <div class="upcoming-avatar">${initials(n.emp.name)}</div>
       <div class="upcoming-info">
         <div class="upcoming-name">${n.emp.name}</div>
-        <div class="upcoming-meta">${n.emp.division || '—'} · ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} on ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}</div>
+        <div class="upcoming-meta">${n.emp.division || '—'} · ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} on ${formatDate(milestoneDate(n.ntype === 'salary' ? (n.emp.stepIncrementBaseDate || n.emp.lastPromotionDate || n.emp.startDate) : n.emp.startDate, n.milestone))}</div>
       </div>
       <div class="upcoming-days">in ${n.daysLeft} days</div>
     </div>
@@ -234,7 +294,7 @@ function renderTable() {
         const matchName = emp.name && emp.name.toLowerCase().includes(q);
         const matchId = emp.employeeId && emp.employeeId.toLowerCase().includes(q);
         const matchDiv = emp.division && emp.division.toLowerCase().includes(q);
-        
+
         if (searchField === 'name') return matchName;
         if (searchField === 'id') return matchId;
         if (searchField === 'division') return matchDiv;
@@ -278,7 +338,7 @@ function renderTable() {
   tbody.innerHTML = currentEmployees.map(emp => {
     const years = yearsWorked(emp.startDate);
     const pct = Math.min(100, Math.round(progressToNext(years)));
-    const soonest = getSoonestEvent(emp.startDate);
+    const soonest = getSoonestEvent(emp);
     return `
       <tr>
         <td style="font-weight:600;color:var(--text-hint);font-size:12px;">${emp.employeeId || '—'}</td>
@@ -289,7 +349,7 @@ function renderTable() {
         <td style="color:var(--text-muted);">${emp.eligibility || '—'}</td>
         <td style="color:var(--text-muted);">${formatDate(emp.startDate)}</td>
         <td style="font-weight:600;">${formatCurrency(emp.currentSalary || 0)}</td>
-        <td>${promotionBadge(emp.promotionCount || 0)}</td>
+        <td>${promotionBadge(emp)}</td>
         <td>
           <div class="progress-wrap">
             <span style="font-weight:600;min-width:32px;">${years.toFixed(1)}</span>
@@ -305,7 +365,7 @@ function renderTable() {
            <div style="display:flex;gap:4px;">
               <button class="btn-icon blue" onclick="openEditModal('${emp.id}')">Edit</button>
               <button class="btn-icon teal" onclick="openPromoteModal('${emp.id}')">Promote</button>
-              <button class="btn-icon amber" onclick="openDemoteModal('${emp.id}')" ${(emp.promotionCount || 0) === 0 ? 'disabled' : ''}>Demote</button>
+              <button class="btn-icon amber" onclick="openDemoteModal('${emp.id}')">Demote</button>
               <button class="btn-icon" onclick="removeEmployee('${emp.id}')">Remove</button>
            </div>
         </td>
@@ -316,7 +376,7 @@ function renderTable() {
 
 function renderNotifications() {
   const notifs = getNotifications();
-  
+
   // Filter by Search Term (Active Only)
   let filtered = notifs.filter(n => !n.dismissed);
   if (notifSearchTerm) {
@@ -337,7 +397,7 @@ function renderNotifications() {
 
   let activeGroup = loyaltyGroup;
   let activeTitle = 'Loyalty Awards';
-  
+
   if (currentNotifTab === 'salary') {
     activeGroup = salaryGroup;
     activeTitle = 'Salary Updates';
@@ -371,17 +431,18 @@ function renderNotifications() {
 function renderNotifItem(n, isHistoryView = false) {
   if (n.type === 'milestone') {
     const isSalary = n.ntype === 'salary';
-    const eventTitle = isSalary 
-        ? `${n.emp.name} is due for a ${n.milestone}-year Salary Update!` 
-        : `${n.emp.name} has reached ${n.milestone} years of service! ${n.milestone % 10 === 0 ? '(Loyalty Award)' : ''}`;
-    
-    const subTitle = isSalary
-        ? `${n.emp.division || 'No division'} · Due since ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}`
-        : `${n.emp.division || 'No division'} · Started ${formatDate(n.emp.startDate)} · Admin recognition recommended`;
+    const baseS = n.archivedBaseDate || n.emp.stepIncrementBaseDate || n.emp.lastPromotionDate || n.emp.startDate;
+    const eventTitle = isSalary
+      ? `${n.emp.name} is due for a ${n.milestone}-year Salary Update!`
+      : `${n.emp.name} has reached ${n.milestone} years of service! ${n.milestone % 10 === 0 ? '(Loyalty Award)' : ''}`;
 
-    const extraAction = isSalary 
-        ? `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; background: var(--teal); box-shadow: none;" onclick="openSalaryModal('${n.emp.id}', '${n.key}')">Update Salary</button>`
-        : `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; box-shadow: none;" onclick="dismissNotif('${n.key}')">Mark as recognized</button>`;
+    const subTitle = isSalary
+      ? `${n.emp.division || 'No division'} · Due since ${formatDate(milestoneDate(baseS, n.milestone))}`
+      : `${n.emp.division || 'No division'} · Started ${formatDate(n.emp.startDate)} · Admin recognition recommended`;
+
+    const extraAction = isSalary
+      ? `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; background: var(--teal); box-shadow: none;" onclick="openSalaryModal('${n.emp.id}', '${n.key}')">Update Salary</button>`
+      : `<button class="btn-primary" style="margin-top: 12px; font-size: 13px; padding: 6px 14px; box-shadow: none;" onclick="dismissNotif('${n.key}')">Mark as recognized</button>`;
 
     const actionBlock = isHistoryView
       ? `<div style="display:flex; flex-wrap: wrap; gap: 8px; align-items:center; margin-top:12px;">
@@ -419,7 +480,7 @@ function renderNotifItem(n, isHistoryView = false) {
         <div class="notif-body">
           <div class="notif-title">${n.emp.name} — ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} in ${n.daysLeft} days</div>
           <div class="notif-sub">
-            ${n.emp.division || 'No division'} · Milestone date: ${formatDate(milestoneDate(n.emp.startDate, n.milestone))}
+            ${n.emp.division || 'No division'} · Milestone date: ${formatDate(milestoneDate(n.ntype === 'salary' ? (n.emp.stepIncrementBaseDate || n.emp.lastPromotionDate || n.emp.startDate) : n.emp.startDate, n.milestone))}
           </div>
           ${actionBlock}
         </div>
@@ -450,15 +511,84 @@ function renderSidebarBadge() {
   badge.style.display = count > 0 ? '' : 'none';
 }
 
+function renderYearlyReport() {
+  const tbody = document.getElementById('reportTableBody');
+  if (!tbody) return;
+  const currentYear = new Date().getFullYear();
+  const yearText = document.getElementById('reportYearText');
+  if (yearText) yearText.textContent = currentYear;
+
+  const results = [];
+  employees.forEach(emp => {
+    // Loyalty Milestones
+    const loyaltyMs = [10, 15, 20, 25, 30, 35, 40, 45, 50];
+    loyaltyMs.forEach(m => {
+       const d = milestoneDate(emp.startDate, m);
+       if (d.getFullYear() === currentYear) {
+         results.push({ emp, milestone: m, type: 'loyalty', date: d });
+       }
+    });
+
+    // Salary Milestones
+    const salaryMs = [];
+    for(let m=3; m<=50; m+=3) salaryMs.push(m);
+    salaryMs.forEach(m => {
+       const baseS = emp.stepIncrementBaseDate || emp.lastPromotionDate || emp.startDate;
+       const d = milestoneDate(baseS, m);
+       if (d.getFullYear() === currentYear) {
+         results.push({ emp, milestone: m, type: 'salary', date: d });
+       }
+    });
+  });
+
+  results.sort((a,b) => a.date - b.date);
+
+  if (results.length === 0) {
+    if (employees.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty">No employees in the system.</div></td></tr>`;
+    } else {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty">No milestones happening in ${currentYear}.</div></td></tr>`;
+    }
+    return;
+  }
+
+  tbody.innerHTML = results.map(item => {
+    const isSalary = item.type === 'salary';
+    const typeBadge = isSalary 
+      ? '<span class="badge badge-teal">Salary</span>'
+      : '<span class="badge badge-amber">Loyalty</span>';
+    
+    const milestoneText = isSalary
+      ? `${item.milestone}-year Salary Adjustment`
+      : `${item.milestone}-year ${item.milestone % 10 === 0 ? 'Loyalty Award' : 'Milestone'}`;
+
+    return `
+      <tr>
+         <td style="font-weight:600; white-space:nowrap;">${formatDate(item.date)}</td>
+         <td style="font-weight:500;">${item.emp.name}</td>
+         <td style="color:var(--text-muted); font-size:12px;">${item.emp.employeeId || '—'}</td>
+         <td style="color:var(--text-muted);">${item.emp.division || '—'}</td>
+         <td style="font-weight:500;">${milestoneText}</td>
+         <td>${typeBadge}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
 function renderAll() {
   renderMetrics();
   renderUpcoming();
   renderTable();
   renderNotifications();
   renderSidebarBadge();
+  renderYearlyReport();
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
+
+function printYearlyReport() {
+  window.print();
+}
 
 function addEmployee() {
   const empIdText = document.getElementById('inputId').value.trim();
@@ -620,11 +750,11 @@ function switchHistoryTab(tab) {
   document.getElementById('histTabLoyalty').classList.remove('active');
   document.getElementById('histTabSalary').classList.remove('active');
   document.getElementById('histTabUpcoming').classList.remove('active');
-  
+
   if (tab === 'loyalty') document.getElementById('histTabLoyalty').classList.add('active');
   if (tab === 'salary') document.getElementById('histTabSalary').classList.add('active');
   if (tab === 'upcoming') document.getElementById('histTabUpcoming').classList.add('active');
-  
+
   currentHistoryTab = tab;
   renderHistoryContent();
 }
@@ -632,15 +762,15 @@ function switchHistoryTab(tab) {
 function renderHistoryContent() {
   const notifs = getNotifications();
   const el = document.getElementById('historyContainer');
-  
+
   let historyItems = notifs.filter(n => n.dismissed);
-  
+
   // Filter by Search
   if (historySearchTerm) {
     const q = historySearchTerm.toLowerCase();
     historyItems = historyItems.filter(n => n.emp.name.toLowerCase().includes(q));
   }
-  
+
   // Filter by Tab
   if (currentHistoryTab === 'loyalty') {
     historyItems = historyItems.filter(n => n.type === 'milestone' && n.ntype !== 'salary');
@@ -769,15 +899,19 @@ function openDemoteModal(id) {
   const emp = employees.find(e => e.id === id);
   if (!emp) return;
 
-  const currentCount = emp.promotionCount || 0;
-  if (currentCount <= 0) {
-    alert('This employee is at Step 0 and cannot be demoted further.');
-    return;
-  }
+  // No restriction on demotion eligibility as requested
 
   currentDemoteEmpId = id;
   const nameEl = document.getElementById('demoteEmpName');
   if (nameEl) nameEl.textContent = emp.name;
+
+  const dateInput = document.getElementById('inputDemoteDate');
+  if (dateInput) {
+    dateInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  const errDiv = document.getElementById('demoteError');
+  if (errDiv) errDiv.textContent = '';
 
   const modal = document.getElementById('demoteModal');
   if (modal) modal.style.display = 'flex';
@@ -786,6 +920,13 @@ function openDemoteModal(id) {
 function closeDemoteModal() {
   const modal = document.getElementById('demoteModal');
   if (modal) modal.style.display = 'none';
+
+  const dateInput = document.getElementById('inputDemoteDate');
+  if (dateInput) dateInput.value = '';
+
+  const errDiv = document.getElementById('demoteError');
+  if (errDiv) errDiv.textContent = '';
+
   currentDemoteEmpId = null;
 }
 
@@ -797,7 +938,19 @@ function submitDemote() {
   if (!currentDemoteEmpId) return;
   const emp = employees.find(e => e.id === currentDemoteEmpId);
   if (emp) {
-    emp.promotionCount = (emp.promotionCount || 0) - 1;
+    const demoteDateInput = document.getElementById('inputDemoteDate');
+    const demoteDate = demoteDateInput ? demoteDateInput.value : '';
+    const errDiv = document.getElementById('demoteError');
+
+    if (!demoteDate) {
+      if (errDiv) errDiv.textContent = 'Please specify the date of demotion.';
+      else alert('Please specify the date of demotion.');
+      return;
+    }
+
+    archiveSalaryMilestones(emp);
+
+    // emp.promotionCount = (emp.promotionCount || 0) - 1; // Removed as per request
     if (emp.positionHistory && emp.positionHistory.length > 1) {
       emp.positionHistory.pop();
       emp.position = emp.positionHistory[emp.positionHistory.length - 1];
@@ -806,6 +959,10 @@ function submitDemote() {
       emp.lastPromotionDateHistory.pop();
       emp.lastPromotionDate = emp.lastPromotionDateHistory.length > 0 ? emp.lastPromotionDateHistory[emp.lastPromotionDateHistory.length - 1] : '';
     }
+    
+    // Reset the 3 year timer to the specified demotion date
+    emp.stepIncrementBaseDate = demoteDate;
+    
     saveEmployees(employees);
     renderAll();
   }
@@ -819,8 +976,12 @@ function openPromoteModal(id) {
     currentPromoteEmpId = id;
     const emp = employees.find(e => e.id === id);
     const posInput = document.getElementById('inputNewPosition');
+    const dateInput = document.getElementById('inputNewPromoDate');
     if (posInput) {
       posInput.value = emp ? (emp.position || '') : '';
+    }
+    if (dateInput) {
+      dateInput.value = new Date().toISOString().split('T')[0];
     }
 
     const errDiv = document.getElementById('promoteError');
@@ -844,6 +1005,9 @@ function closePromoteModal() {
   const posInput = document.getElementById('inputNewPosition');
   if (posInput) posInput.value = '';
 
+  const dateInput = document.getElementById('inputNewPromoDate');
+  if (dateInput) dateInput.value = '';
+
   const errDiv = document.getElementById('promoteError');
   if (errDiv) errDiv.textContent = '';
 
@@ -855,11 +1019,17 @@ function submitPromotion() {
     if (!currentPromoteEmpId) return;
 
     const posInput = document.getElementById('inputNewPosition');
+    const dateInput = document.getElementById('inputNewPromoDate');
     const newPosition = posInput ? posInput.value.trim() : '';
+    const promoDate = dateInput ? dateInput.value : '';
     const errDiv = document.getElementById('promoteError');
 
     if (!newPosition) {
       if (errDiv) errDiv.textContent = 'Please specify the new position.';
+      return;
+    }
+    if (!promoDate) {
+      if (errDiv) errDiv.textContent = 'Please specify the date of promotion.';
       return;
     }
 
@@ -872,6 +1042,8 @@ function submitPromotion() {
         return;
       }
 
+      archiveSalaryMilestones(emp);
+
       if (!emp.positionHistory) {
         emp.positionHistory = [emp.position || ''];
       }
@@ -879,9 +1051,10 @@ function submitPromotion() {
         emp.lastPromotionDateHistory = [emp.lastPromotionDate || ''];
       }
       emp.positionHistory.push(newPosition);
-      emp.lastPromotionDateHistory.push(new Date().toISOString().split('T')[0]);
+      emp.lastPromotionDateHistory.push(promoDate);
       emp.position = newPosition;
-      emp.lastPromotionDate = new Date().toISOString().split('T')[0];
+      emp.lastPromotionDate = promoDate;
+      emp.stepIncrementBaseDate = promoDate;
 
       saveEmployees(employees);
       renderAll();
@@ -974,8 +1147,19 @@ function submitSalaryUpdate() {
       emp.salaryHistory.push(newSalary);
       emp.promotionCount = (emp.promotionCount || 0) + 1;
 
-      if (currentSalaryNotifKey) {
-        dismissNotif(currentSalaryNotifKey);
+      // Automatically dismiss ALL active salary notifications for this employee
+      const activeNotifs = getNotifications();
+      let dismissedAny = false;
+      activeNotifs.forEach(n => {
+        if (n.emp.id === emp.id && n.ntype === 'salary' && !n.dismissed) {
+          if (!dismissed.includes(n.key)) {
+            dismissed.push(n.key);
+            dismissedAny = true;
+          }
+        }
+      });
+      if (dismissedAny) {
+        saveDismissed(dismissed);
       }
 
       saveEmployees(employees);
@@ -998,9 +1182,13 @@ function openEditModal(id) {
   document.getElementById('editDept').value = emp.division || 'STOD';
   document.getElementById('editPosition').value = emp.position || '';
   document.getElementById('editEligibility').value = emp.eligibility || '';
+  document.getElementById('editPromoDate').value = emp.lastPromotionDate || '';
   document.getElementById('editDate').value = emp.startDate || '';
   document.getElementById('editSalary').value = emp.currentSalary || '';
   document.getElementById('editModal').style.display = 'flex';
+  
+  const modalBody = document.querySelector('#editModal .modal-body');
+  if (modalBody) modalBody.scrollTop = 0;
 }
 
 function closeEditModal() {
@@ -1017,18 +1205,14 @@ function submitEditEmployee() {
   const empIndex = employees.findIndex(e => e.id === currentEditEmpId);
   if (empIndex === -1) return;
 
-  const empIdText = document.getElementById('editId').value.trim();
-  const name = document.getElementById('editName').value.trim();
+  const empIdText = document.getElementById('editId').value;
+  const name = document.getElementById('editName').value;
   const dept = document.getElementById('editDept').value;
-  const position = document.getElementById('editPosition').value.trim();
-  const eligibility = document.getElementById('editEligibility').value.trim();
+  const position = document.getElementById('editPosition').value;
+  const eligibility = document.getElementById('editEligibility').value;
+  const promoDate = document.getElementById('editPromoDate').value;
   const date = document.getElementById('editDate').value;
   const salaryInput = document.getElementById('editSalary').value;
-
-  if (!name || !date || !salaryInput) {
-    alert('Please provide a name, start date, and salary.');
-    return;
-  }
 
   const emp = employees[empIndex];
   if (!emp.salaryHistory) emp.salaryHistory = [emp.currentSalary];
@@ -1044,6 +1228,16 @@ function submitEditEmployee() {
     emp.positionHistory = [emp.position];
   } else {
     emp.positionHistory[emp.positionHistory.length - 1] = position;
+  }
+
+  emp.lastPromotionDate = promoDate;
+  emp.stepIncrementBaseDate = promoDate;
+  if (!emp.lastPromotionDateHistory) {
+    emp.lastPromotionDateHistory = [promoDate];
+  } else if (emp.lastPromotionDateHistory.length > 0) {
+    emp.lastPromotionDateHistory[emp.lastPromotionDateHistory.length - 1] = promoDate;
+  } else {
+    emp.lastPromotionDateHistory.push(promoDate);
   }
 
   const newSalary = parseFloat(salaryInput) || 0;
@@ -1106,7 +1300,7 @@ function promptBulkConfirm(action, title, message, btnText, bgGradient) {
   const tEl = document.getElementById('bulkConfirmTitle');
   const mEl = document.getElementById('bulkConfirmMessage');
   const bEl = document.getElementById('bulkConfirmBtn');
-  
+
   if (tEl) tEl.textContent = title;
   if (mEl) mEl.innerHTML = message;
   if (bEl) {
@@ -1156,7 +1350,7 @@ function executeResolveDuplicate(choice) {
   const { oldEmp, newEmp } = currentDuplicateItem;
 
   if (choice === 'cancelImport') {
-    
+
     if (backupEmployeesBeforeImport) {
       employees = [...backupEmployeesBeforeImport];
     }
@@ -1164,13 +1358,13 @@ function executeResolveDuplicate(choice) {
     document.getElementById('duplicateModal').style.display = 'none';
     duplicateQueueOnComplete = null;
     backupEmployeesBeforeImport = null;
-    
+
     const succ = document.getElementById('csvSuccess');
     if (succ && document.getElementById('modal').style.display !== 'none') {
       succ.innerHTML = `Import was successfully canceled.<br>No data was added.`;
       succ.style.display = 'block';
       succ.style.background = 'var(--red)';
-      
+
       setTimeout(() => {
         succ.style.display = 'none';
         closeModal();
@@ -1178,7 +1372,7 @@ function executeResolveDuplicate(choice) {
     } else {
       alert('Import was successfully canceled. No data was added.');
     }
-    
+
     renderAll();
     return;
   } else if (choice === 'keepAllOld') {
