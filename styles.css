@@ -1627,9 +1627,27 @@ html.theme-transitioning .modal-island {
 
 /* ─── Print Styles ─── */
 @media print {
+  :root, html[data-theme="dark"] {
+    --bg-top: #ffffff !important;
+    --bg-bottom: #ffffff !important;
+    --surface: transparent !important;
+    --surface-solid: #ffffff !important;
+    --surface2: transparent !important;
+    --surface-hover: transparent !important;
+    --border: #dddddd !important;
+    --border-strong: #cccccc !important;
+    --text: #000000 !important;
+    --text-muted: #333333 !important;
+    --text-hint: #666666 !important;
+    --accent: #000000 !important;
+    --amber: #000000 !important;
+    --teal: #000000 !important;
+    --red: #000000 !important;
+  }
+
   html, body {
-    background: #fff;
-    color: #000;
+    background: #ffffff !important;
+    color: #000000 !important;
     overflow: visible !important;
     height: auto !important;
     min-height: auto !important;
@@ -1677,6 +1695,17 @@ html.theme-transitioning .modal-island {
   
   .page-title, .page-sub {
     color: #000 !important;
+  }
+
+  .page-title {
+    -webkit-text-fill-color: initial !important;
+    background: none !important;
+  }
+  
+  .badge {
+    color: #000 !important;
+    border-color: #666 !important;
+    font-weight: 800 !important;
   }
 
   .page-header {
