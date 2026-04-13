@@ -153,7 +153,7 @@
           </div>
           <div style="display:flex; gap:12px; align-items:center;">
             <button class="btn-outline" style="border-color: var(--text-muted); color: var(--text-muted);"
-              onclick="openDismissAllModal()">Dismiss all</button>
+              onclick="openDismissAllModal()">Dismiss Notifications</button>
             <button class="btn-outline" onclick="openHistoryModal()">History</button>
           </div>
         </div>
@@ -184,7 +184,7 @@
             <p class="page-sub">All service and salary milestones happening from January 1 to December 31</p>
           </div>
           <div style="display:flex; gap:12px; align-items:center;">
-            <button class="btn-primary" onclick="printYearlyReport()">Print Report</button>
+            <button class="btn-outline print-btn" onclick="window.print()">Print to PDF</button>
           </div>
         </div>
 
@@ -513,17 +513,19 @@
     onmousedown="closeDismissAllModalOutside(event)">
     <div class="modal">
       <div class="modal-header">
-        <h2 class="modal-title">Dismiss All Notifications</h2>
+        <h2 class="modal-title">Dismiss Notifications</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 15px;">Are you sure you want to dismiss all active notifications?
-          <br><span style="color: var(--text-muted); font-size: 13px;">This will remove them from your current
-            view.</span>
-        </p>
+        <p style="color: var(--text); font-size: 15px;">Select which notifications you want to dismiss.</p>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top: 16px;">
+          <button class="btn-outline" style="justify-content: center;" onclick="dismissAllNotifs('loyalty')">Loyalty Awards</button>
+          <button class="btn-outline" style="justify-content: center;" onclick="dismissAllNotifs('salary')">Salary Updates</button>
+          <button class="btn-outline" style="justify-content: center;" onclick="dismissAllNotifs('upcoming')">Upcoming Milestones</button>
+          <button class="btn-primary" style="justify-content: center;" onclick="dismissAllNotifs('all')">Dismiss all notifications</button>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeDismissAllModal()">Cancel</button>
-        <button class="btn-primary" onclick="dismissAllNotifs()">Confirm Dismiss</button>
       </div>
     </div>
   </div>
@@ -551,12 +553,10 @@
         <div id="historyContainer" style="max-height: 400px; overflow-y: auto;"></div>
       </div>
       <div class="modal-footer history-modal-footer">
-        <button class="btn-outline" style="border-color: var(--teal); color: var(--teal);"
-          onclick="openRestoreAllModal()">Restore all</button>
-        <button class="btn-outline" style="border-color: var(--red); color: var(--red);"
-          onclick="openClearHistoryModal()">Clear History</button>
+        <button class="btn-outline" onclick="openRestoreAllModal()">Restore</button>
+        <button class="btn-outline" onclick="openClearHistoryModal()">Clear</button>
         <div class="spacer" style="flex:1;"></div>
-        <button class="btn-primary" onclick="closeHistoryModal()">Close Island</button>
+        <button class="btn-primary" onclick="closeHistoryModal()">Close</button>
       </div>
     </div>
   </div>
@@ -566,16 +566,19 @@
     onmousedown="closeRestoreAllModalOutside(event)">
     <div class="modal">
       <div class="modal-header">
-        <h2 class="modal-title">Restore All Notifications</h2>
+        <h2 class="modal-title">Restore Notifications</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 15px;">Are you sure you want to move <strong>ALL</strong> history items
-          back into the Active view?</p>
+        <p style="color: var(--text); font-size: 15px;">Select which history items you want to move back into the Active view.</p>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top: 16px;">
+          <button class="btn-outline" style="justify-content: center;" onclick="confirmRestoreAll('loyalty')">Loyalty Awards</button>
+          <button class="btn-outline" style="justify-content: center;" onclick="confirmRestoreAll('salary')">Salary Updates</button>
+          <button class="btn-outline" style="justify-content: center;" onclick="confirmRestoreAll('upcoming')">Upcoming Milestones</button>
+          <button class="btn-primary" style="background: var(--teal); border-collapse: separate; border-color: var(--teal); justify-content: center;" onclick="confirmRestoreAll('all')">Restore all notifications</button>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeRestoreAllModal()">Cancel</button>
-        <button class="btn-primary" style="background: var(--teal); border-color: var(--teal);"
-          onclick="confirmRestoreAll()">Yes, Restore All</button>
       </div>
     </div>
   </div>
@@ -588,14 +591,16 @@
         <h2 class="modal-title">Clear History permanently</h2>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text); font-size: 15px;">Are you sure you want to <strong>PERMANENTLY DELETE</strong>
-          your notification history? <br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">This
-            action cannot be undone. These specific alerts will not show up again.</span></p>
+        <p style="color: var(--text); font-size: 15px;">Select which history items you want to <strong>PERMANENTLY DELETE</strong>.<br><br><span style="color: var(--red); font-size: 13px; font-weight: 600;">This action cannot be undone. These specific alerts will not show up again.</span></p>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top: 16px;">
+          <button class="btn-outline" style="justify-content: center;" onclick="confirmClearHistory('loyalty')">Loyalty Awards</button>
+          <button class="btn-outline" style="justify-content: center;" onclick="confirmClearHistory('salary')">Salary Updates</button>
+          <button class="btn-outline" style="justify-content: center;" onclick="confirmClearHistory('upcoming')">Upcoming Milestones</button>
+          <button class="btn-primary" style="background: var(--red); border-color: var(--red); justify-content: center;" onclick="confirmClearHistory('all')">Delete all notifications</button>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-outline" onclick="closeClearHistoryModal()">Cancel</button>
-        <button class="btn-primary" style="background: var(--red); border-color: var(--red);"
-          onclick="confirmClearHistory()">Yes, Clear Permanently</button>
       </div>
     </div>
   </div>

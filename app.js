@@ -586,9 +586,7 @@ function renderAll() {
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
-function printYearlyReport() {
-  window.print();
-}
+
 
 function addEmployee() {
   const empIdText = document.getElementById('inputId').value.trim();
@@ -697,13 +695,22 @@ function closeDismissAllModalOutside(e) {
   if (e.target.id === 'dismissAllModal') closeDismissAllModal();
 }
 
-function dismissAllNotifs() {
+function dismissAllNotifs(type = 'all') {
   const notifs = getNotifications();
   let changed = false;
+  
   notifs.forEach(n => {
     if (!n.dismissed && !dismissed.includes(n.key)) {
-      dismissed.push(n.key);
-      changed = true;
+      let match = false;
+      if (type === 'all') match = true;
+      else if (type === 'loyalty' && n.type === 'milestone' && n.ntype !== 'salary') match = true;
+      else if (type === 'salary' && n.type === 'milestone' && n.ntype === 'salary') match = true;
+      else if (type === 'upcoming' && n.type === 'upcoming') match = true;
+
+      if (match) {
+        dismissed.push(n.key);
+        changed = true;
+      }
     }
   });
   if (changed) {
@@ -818,8 +825,24 @@ function closeRestoreAllModal() {
 function closeRestoreAllModalOutside(e) {
   if (e.target.id === 'restoreAllModal') closeRestoreAllModal();
 }
-function confirmRestoreAll() {
-  dismissed = [];
+function confirmRestoreAll(type = 'all') {
+  if (type === 'all') {
+    dismissed = [];
+  } else {
+    const notifs = getNotifications();
+    dismissed = dismissed.filter(key => {
+      const n = notifs.find(x => x.key === key);
+      if (!n) return true; // keep if it doesn't exist
+      
+      let match = false;
+      if (type === 'loyalty' && n.type === 'milestone' && n.ntype !== 'salary') match = true;
+      else if (type === 'salary' && n.type === 'milestone' && n.ntype === 'salary') match = true;
+      else if (type === 'upcoming' && n.type === 'upcoming') match = true;
+
+      return !match;
+    });
+  }
+
   saveDismissed(dismissed);
   closeRestoreAllModal();
   renderAll();
@@ -835,13 +858,23 @@ function closeClearHistoryModal() {
 function closeClearHistoryModalOutside(e) {
   if (e.target.id === 'clearHistoryModal') closeClearHistoryModal();
 }
-function confirmClearHistory() {
+function confirmClearHistory(type = 'all') {
   const notifs = getNotifications();
+  
   notifs.forEach(n => {
     if (n.dismissed && !deletedNotifs.includes(n.key)) {
-      deletedNotifs.push(n.key);
+      let match = false;
+      if (type === 'all') match = true;
+      else if (type === 'loyalty' && n.type === 'milestone' && n.ntype !== 'salary') match = true;
+      else if (type === 'salary' && n.type === 'milestone' && n.ntype === 'salary') match = true;
+      else if (type === 'upcoming' && n.type === 'upcoming') match = true;
+
+      if (match) {
+        deletedNotifs.push(n.key);
+      }
     }
   });
+
   saveDeleted(deletedNotifs);
   closeClearHistoryModal();
   renderAll();

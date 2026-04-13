@@ -179,7 +179,7 @@ html[data-theme="dark"] body::before {
   top: 0;
   left: 0;
   bottom: 0;
-  z-index: 10;
+  z-index: 200;
   transition: var(--transition);
 }
 
@@ -375,19 +375,19 @@ html[data-theme="dark"] body::before {
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   color: #fff;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 12px 24px;
   border-radius: var(--radius-sm);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: var(--transition);
-  box-shadow: 0 4px 15px var(--accent-glow);
+  box-shadow: 0 4px 15px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--accent-glow);
+  box-shadow: 0 6px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary:active {
@@ -395,23 +395,25 @@ html[data-theme="dark"] body::before {
 }
 
 .btn-outline {
-  background: var(--surface);
+  background: var(--surface-solid);
   backdrop-filter: blur(10px);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 2px solid var(--text-muted);
   padding: 12px 24px;
   border-radius: var(--radius-sm);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: var(--transition);
   box-shadow: var(--shadow-sm);
 }
 
 .btn-outline:hover {
-  background: var(--surface-hover);
-  border-color: var(--text-hint);
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-icon {
@@ -1399,6 +1401,34 @@ html[data-theme="dark"] body::before {
   .dup-action-group button {
     width: 100%;
   }
+
+  /* Global Modal Footer Fixes for Mobile */
+  .modal-footer {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+  
+  .modal-footer button {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Structural Button Layout Scaling */
+  .page-header > div:last-child {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .page-header > div:last-child button {
+    flex: 1;
+    min-width: 140px;
+    white-space: normal;
+  }
+  
+  .search-options {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1595,123 +1625,110 @@ html.theme-transitioning .modal-island {
   box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
 }
 
+/* ─── Print Styles ─── */
 @media print {
-  @page {
-    margin: 10mm;
-    size: auto;
+  html, body {
+    background: #fff;
+    color: #000;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
   }
   
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-    transition: none !important;
-    float: none !important;
-  }
-
-  /* Reset EVERYTHING in the ancestor chain to block & static so flex/grid/overflows don't clip pages */
-  html, body, .app, .main, section, .view, .table-card {
+  .app {
     display: block !important;
-    position: static !important;
     height: auto !important;
     min-height: 0 !important;
-    max-height: none !important;
     overflow: visible !important;
-    overflow-x: visible !important;
-    overflow-y: visible !important;
-    background: transparent !important;
-    width: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  
-  body, html {
-    background: #fff !important;
-    color: #000 !important;
-    font-size: 11pt !important;
   }
   
   body::before {
     display: none !important;
   }
   
-  .sidebar, .mobile-header, .page-header button, #scrollToTopBtn, #themeToggleBtn {
+  .sidebar,
+  .mobile-header,
+  .print-btn,
+  #scrollToTopBtn,
+  #themeToggleBtn {
     display: none !important;
   }
 
-  .view {
+  /* Make main component full width */
+  .main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    background: #fff !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Hide views that are not currently active */
+  .view:not(.active) {
     display: none !important;
   }
   
   .view.active {
     display: block !important;
+    overflow: visible !important;
+  }
+  
+  .page-title, .page-sub {
+    color: #000 !important;
   }
 
   .page-header {
-    margin-bottom: 20px !important;
-  }
-  
-  .page-title {
-    color: #000 !important;
-    -webkit-text-fill-color: #000 !important;
-    font-size: 18pt !important;
-    border-bottom: 2px solid #000 !important;
-    padding-bottom: 5px !important;
-    margin: 0 !important;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
   }
 
-  /* Table rendering rules for multi-page */
-  .emp-table {
-    display: table !important;
-    min-width: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    table-layout: auto !important;
-    border: 1px solid #ccc !important;
-    border-collapse: collapse !important;
-    page-break-inside: auto !important;
+  .table-card {
+    box-shadow: none !important;
+    border: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transform: none !important;
   }
   
-  .emp-table thead {
-    display: table-header-group !important;
-  }
-  
-  .emp-table tbody {
-    display: table-row-group !important;
+  .report-table-card {
+    display: block !important;
+    max-height: none !important;
+    overflow: visible !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
-  .emp-table tr {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    page-break-after: auto !important;
+  /* Ensure rows break naturally without artificial constraints */
+  table, .emp-table {
+    border-collapse: collapse;
+    width: 100%;
+    page-break-inside: auto;
   }
-  
-  .emp-table th, .emp-table td {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    padding: 8px !important;
-    font-size: 9pt !important;
-    border: 1px solid #ddd !important;
+
+  th, td, .emp-table th, .emp-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
     color: #000 !important;
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
-    line-height: 1.4 !important;
   }
-  
-  .emp-table th {
+
+  th, .emp-table th {
+    background-color: #f5f5f5 !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    page-break-inside: avoid;
     position: static !important;
-    background: #f5f5f5 !important;
-    font-weight: bold !important;
-    color: #000 !important;
   }
 
-  .badge {
-    background: transparent !important;
-    border: 1px solid #666 !important;
-    color: #000 !important;
-    font-weight: bold !important;
-    padding: 2px 6px !important;
-    display: inline-block !important;
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
   }
 }
