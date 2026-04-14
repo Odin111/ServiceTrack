@@ -205,6 +205,21 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
 }
 
+function formatDaysLeft(daysLeft) {
+  if (daysLeft <= 0) return 'Due now!';
+  const y = Math.floor(daysLeft / 365);
+  const m = Math.floor((daysLeft % 365) / 30);
+  const d = Math.floor((daysLeft % 365) % 30);
+  
+  const parts = [];
+  if (y > 0) parts.push(`${y}y`);
+  if (m > 0) parts.push(`${m}m`);
+  if (d > 0) parts.push(`${d}d`);
+  
+  if (parts.length === 0) return 'Due today';
+  return `in ${parts.join(' ')}`;
+}
+
 function promotionBadge(emp) {
   const count = emp.promotionCount || 0;
   const badgeHTML = (!count || count === 0) 
@@ -220,16 +235,9 @@ function promotionBadge(emp) {
   if (daysLeft <= 0) {
     timerText = '<div style="font-size:11px; color:var(--amber); margin-top:4px; font-weight:600; white-space:nowrap;">Due Now</div>';
   } else {
-    // Format timer cleanly
-    const yearsLeft = Math.floor(daysLeft / 365);
-    const monthsLeft = Math.floor((daysLeft % 365) / 30);
-    if (yearsLeft > 0 && monthsLeft > 0) {
-      timerText = `<div style="font-size:11px; color:var(--text-hint); margin-top:4px; white-space:nowrap;">In ${yearsLeft}y ${monthsLeft}m</div>`;
-    } else if (yearsLeft > 0) {
-      timerText = `<div style="font-size:11px; color:var(--text-hint); margin-top:4px; white-space:nowrap;">In ${yearsLeft} yrs</div>`;
-    } else {
-      timerText = `<div style="font-size:11px; color:var(--text-hint); margin-top:4px; white-space:nowrap;">In ${monthsLeft} mos</div>`;
-    }
+    let tStr = formatDaysLeft(daysLeft);
+    tStr = tStr.charAt(0).toUpperCase() + tStr.slice(1);
+    timerText = `<div style="font-size:11px; color:var(--text-hint); margin-top:4px; white-space:nowrap;">${tStr}</div>`;
   }
 
   return `<div style="display:flex; flex-direction:column; align-items:center;">
@@ -358,7 +366,7 @@ function renderTable() {
         </td>
         <td style="font-size:13px;">
           ${soonest.label}<br>
-          <span style="color:var(--text-hint);font-size:11px;">${soonest.daysLeft > 0 ? `in ${soonest.daysLeft} days` : 'Due now!'}</span>
+          <span style="color:var(--text-hint);font-size:11px;">${formatDaysLeft(soonest.daysLeft)}</span>
         </td>
         <td>${statusBadge(years)}</td>
         <td>
