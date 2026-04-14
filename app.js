@@ -273,7 +273,7 @@ function renderUpcoming() {
       <div class="upcoming-avatar">${initials(n.emp.name)}</div>
       <div class="upcoming-info">
         <div class="upcoming-name">${n.emp.name}</div>
-        <div class="upcoming-meta">${n.emp.division || '—'} · ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} on ${formatDate(milestoneDate(n.ntype === 'salary' ? (n.emp.stepIncrementBaseDate || n.emp.lastPromotionDate || n.emp.startDate) : n.emp.startDate, n.milestone))}</div>
+        <div class="upcoming-meta">${n.emp.division || '—'} · ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Update' : 'Loyalty Award'} on ${formatDate(milestoneDate(n.ntype === 'salary' ? (n.emp.stepIncrementBaseDate || n.emp.lastPromotionDate || n.emp.startDate) : n.emp.startDate, n.milestone))}</div>
       </div>
       <div class="upcoming-days">in ${n.daysLeft} days</div>
     </div>
@@ -478,7 +478,7 @@ function renderNotifItem(n, isHistoryView = false) {
       <div class="notif-card upcoming">
         <div class="notif-icon upcoming">&#8987;</div>
         <div class="notif-body">
-          <div class="notif-title">${n.emp.name} — ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Adjustment' : (n.milestone % 10 === 0 ? 'Loyalty Award' : 'milestone')} in ${n.daysLeft} days</div>
+          <div class="notif-title">${n.emp.name} — ${n.milestone}-year ${n.ntype === 'salary' ? 'Salary Update' : 'Loyalty Award'} in ${n.daysLeft} days</div>
           <div class="notif-sub">
             ${n.emp.division || 'No division'} · Milestone date: ${formatDate(milestoneDate(n.ntype === 'salary' ? (n.emp.stepIncrementBaseDate || n.emp.lastPromotionDate || n.emp.startDate) : n.emp.startDate, n.milestone))}
           </div>

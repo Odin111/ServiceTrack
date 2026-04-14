@@ -1645,12 +1645,17 @@ html.theme-transitioning .modal-island {
     --red: #000000 !important;
   }
 
+  @page {
+    margin: 0;
+  }
+
   html, body {
     background: #ffffff !important;
     color: #000000 !important;
     overflow: visible !important;
     height: auto !important;
     min-height: auto !important;
+    padding: 15px; /* Add padding to prevent content from touching the media edge */
   }
   
   .app {
