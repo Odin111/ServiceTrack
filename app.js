@@ -1738,3 +1738,19 @@ function fastScrollToTop() {
     window.requestAnimationFrame(fastScrollToTop);
   }
 }
+
+function clearSearch(inputId) {
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+    input.focus();
+  }
+}
+
+function toggleClearIcon(input) {
+  const clearIcon = input.nextElementSibling;
+  if (clearIcon && clearIcon.classList.contains('clear-icon')) {
+    clearIcon.style.display = input.value.length > 0 ? 'flex' : 'none';
+  }
+}

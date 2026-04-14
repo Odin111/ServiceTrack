@@ -1248,6 +1248,30 @@ html[data-theme="dark"] body::before {
   pointer-events: none;
 }
 
+.clear-icon {
+  position: absolute;
+  right: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: none;
+  font-size: 13px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.clear-icon:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.search-wrap .custom-input {
+  padding-right: 36px;
+}
+
 .custom-input,
 .custom-select {
   width: 100%;

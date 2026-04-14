@@ -90,7 +90,8 @@
             <div class="search-wrap" style="width: 100%;">
               <span class="search-icon">&#128269;</span>
               <input type="text" id="empSearchInput" class="custom-input" placeholder="Search..."
-                oninput="renderTable()">
+                oninput="renderTable(); toggleClearIcon(this)">
+              <span class="clear-icon" onclick="clearSearch('empSearchInput')" title="Clear Search">&#10005;</span>
             </div>
             <div class="search-options" style="display: flex; gap: 16px; font-size: 14px; padding-left: 4px;">
               <label style="color: var(--text); display:flex; align-items:center; gap:4px; cursor:pointer;">
@@ -162,7 +163,8 @@
           <div class="search-wrap" style="flex:1;">
             <span class="search-icon">&#128269;</span>
             <input type="text" id="notifSearchInput" class="custom-input" placeholder="Search by Employee Name..."
-              oninput="handleNotifSearch()">
+              oninput="handleNotifSearch(); toggleClearIcon(this)">
+            <span class="clear-icon" onclick="clearSearch('notifSearchInput')" title="Clear Search">&#10005;</span>
           </div>
         </div>
 
@@ -542,7 +544,8 @@
           <div class="search-wrap" style="flex:1;">
             <span class="search-icon">&#128269;</span>
             <input type="text" id="historySearchInput" class="custom-input" placeholder="Search in history..."
-              oninput="handleHistorySearch()">
+              oninput="handleHistorySearch(); toggleClearIcon(this)">
+            <span class="clear-icon" onclick="clearSearch('historySearchInput')" title="Clear Search">&#10005;</span>
           </div>
         </div>
         <div class="tab-nav island-tabs">
