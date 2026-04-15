@@ -605,7 +605,7 @@ function addEmployee() {
   const date = document.getElementById('inputDate').value;
   const salaryInput = document.getElementById('inputSalary').value;
 
-  if (!name || !date || !salaryInput) { alert('Please provide a name, start date, and salary.'); return; }
+  if (!name || !date) { alert('Please provide a name and start date.'); return; }
 
   const currentSalary = parseFloat(salaryInput) || 0;
   const newEmp = {
