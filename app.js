@@ -321,6 +321,8 @@ function renderTable() {
       const yearsB = yearsWorked(b.startDate);
       const promoA = a.promotionCount || 0;
       const promoB = b.promotionCount || 0;
+      const salaryA = a.currentSalary || 0;
+      const salaryB = b.currentSalary || 0;
 
       switch (sortVal) {
         case 'name_asc': return nameA.localeCompare(nameB);
@@ -329,6 +331,8 @@ function renderTable() {
         case 'years_asc': return yearsA - yearsB;
         case 'promo_desc': return promoB - promoA;
         case 'promo_asc': return promoA - promoB;
+        case 'salary_desc': return salaryB - salaryA;
+        case 'salary_asc': return salaryA - salaryB;
         default: return 0;
       }
     });
