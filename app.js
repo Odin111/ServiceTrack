@@ -3,48 +3,82 @@
 const STORAGE_KEY = 'servicetrack_employees';
 const DISMISSED_KEY = 'servicetrack_dismissed';
 const PERMANENT_DELETED_KEY = 'servicetrack_deleted';
+const API_URL = 'http://localhost:3001/api/sync';
 
-function loadEmployees() {
+let employees = [];
+let dismissed = [];
+let deletedNotifs = [];
+
+let notifSearchTerm = '';
+let historySearchTerm = '';
+let currentHistoryTab = 'loyalty';
+
+function saveEmployees(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  fetch(`${API_URL}/${STORAGE_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).catch(e => console.error("Sync error", e));
+}
+
+function saveDismissed(data) {
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify(data));
+  fetch(`${API_URL}/${DISMISSED_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).catch(e => console.error("Sync error", e));
+}
+
+function saveDeleted(data) {
+  localStorage.setItem(PERMANENT_DELETED_KEY, JSON.stringify(data));
+  fetch(`${API_URL}/${PERMANENT_DELETED_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).catch(e => console.error("Sync error", e));
+}
+
+async function loadDataFromAPI() {
   try {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    return data.map(emp => {
-      // Migrate department to division seamlessly
+    const [empRes, disRes, delRes] = await Promise.all([
+      fetch(`${API_URL}/${STORAGE_KEY}`),
+      fetch(`${API_URL}/${DISMISSED_KEY}`),
+      fetch(`${API_URL}/${PERMANENT_DELETED_KEY}`)
+    ]);
+    
+    const empData = await empRes.json();
+    dismissed = await disRes.json();
+    deletedNotifs = await delRes.json();
+    
+    employees = empData.map(emp => {
       if (emp.department !== undefined && emp.division === undefined) {
         emp.division = emp.department;
         delete emp.department;
       }
       return emp;
     });
-  } catch { return []; }
+    
+    // Fallback if empty but local storage has data
+    if (employees.length === 0 && localStorage.getItem(STORAGE_KEY)) {
+        throw new Error("Server empty, using local backup");
+    }
+  } catch (err) {
+    console.warn("Failed to load from DB, falling back to local storage", err);
+    try { employees = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { employees = []; }
+    try { dismissed = JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]'); } catch { dismissed = []; }
+    try { deletedNotifs = JSON.parse(localStorage.getItem(PERMANENT_DELETED_KEY) || '[]'); } catch { deletedNotifs = []; }
+    
+    employees = employees.map(emp => {
+      if (emp.department !== undefined && emp.division === undefined) {
+        emp.division = emp.department;
+        delete emp.department;
+      }
+      return emp;
+    });
+  }
 }
-
-function saveEmployees(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-function loadDismissed() {
-  try { return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]'); } catch { return []; }
-}
-
-function saveDismissed(data) {
-  localStorage.setItem(DISMISSED_KEY, JSON.stringify(data));
-}
-
-function loadDeleted() {
-  try { return JSON.parse(localStorage.getItem(PERMANENT_DELETED_KEY) || '[]'); } catch { return []; }
-}
-
-function saveDeleted(data) {
-  localStorage.setItem(PERMANENT_DELETED_KEY, JSON.stringify(data));
-}
-
-let employees = loadEmployees();
-let dismissed = loadDismissed();
-let deletedNotifs = loadDeleted();
-
-let notifSearchTerm = '';
-let historySearchTerm = '';
-let currentHistoryTab = 'loyalty';
 
 // ─── Calculations ────────────────────────────────────────────────────────────
 
@@ -210,27 +244,27 @@ function formatDaysLeft(daysLeft) {
   const y = Math.floor(daysLeft / 365);
   const m = Math.floor((daysLeft % 365) / 30);
   const d = Math.floor((daysLeft % 365) % 30);
-  
+
   const parts = [];
   if (y > 0) parts.push(`${y}y`);
   if (m > 0) parts.push(`${m}m`);
   if (d > 0) parts.push(`${d}d`);
-  
+
   if (parts.length === 0) return 'Due today';
   return `in ${parts.join(' ')}`;
 }
 
 function promotionBadge(emp) {
   const count = emp.promotionCount || 0;
-  const badgeHTML = (!count || count === 0) 
-    ? '<span class="badge badge-gray" style="font-weight:500">Step 0</span>' 
+  const badgeHTML = (!count || count === 0)
+    ? '<span class="badge badge-gray" style="font-weight:500">Step 0</span>'
     : `<span class="badge badge-blue">Step ${count}</span>`;
 
   const baseS = emp.stepIncrementBaseDate || emp.lastPromotionDate || emp.startDate;
   const yearsS = yearsWorked(baseS);
   const nextM = nextSalaryMilestone(yearsS).milestone;
   const daysLeft = daysUntilMilestone(baseS, nextM);
-  
+
   let timerText = '';
   if (daysLeft <= 0) {
     timerText = '<div style="font-size:11px; color:var(--amber); margin-top:4px; font-weight:600; white-space:nowrap;">Due Now</div>';
@@ -535,25 +569,25 @@ function renderYearlyReport() {
     // Loyalty Milestones
     const loyaltyMs = [10, 15, 20, 25, 30, 35, 40, 45, 50];
     loyaltyMs.forEach(m => {
-       const d = milestoneDate(emp.startDate, m);
-       if (d.getFullYear() === currentYear) {
-         results.push({ emp, milestone: m, type: 'loyalty', date: d });
-       }
+      const d = milestoneDate(emp.startDate, m);
+      if (d.getFullYear() === currentYear) {
+        results.push({ emp, milestone: m, type: 'loyalty', date: d });
+      }
     });
 
     // Salary Milestones
     const salaryMs = [];
-    for(let m=3; m<=50; m+=3) salaryMs.push(m);
+    for (let m = 3; m <= 50; m += 3) salaryMs.push(m);
     salaryMs.forEach(m => {
-       const baseS = emp.stepIncrementBaseDate || emp.lastPromotionDate || emp.startDate;
-       const d = milestoneDate(baseS, m);
-       if (d.getFullYear() === currentYear) {
-         results.push({ emp, milestone: m, type: 'salary', date: d });
-       }
+      const baseS = emp.stepIncrementBaseDate || emp.lastPromotionDate || emp.startDate;
+      const d = milestoneDate(baseS, m);
+      if (d.getFullYear() === currentYear) {
+        results.push({ emp, milestone: m, type: 'salary', date: d });
+      }
     });
   });
 
-  results.sort((a,b) => a.date - b.date);
+  results.sort((a, b) => a.date - b.date);
 
   if (results.length === 0) {
     if (employees.length === 0) {
@@ -566,10 +600,10 @@ function renderYearlyReport() {
 
   tbody.innerHTML = results.map(item => {
     const isSalary = item.type === 'salary';
-    const typeBadge = isSalary 
+    const typeBadge = isSalary
       ? '<span class="badge badge-teal">Salary</span>'
       : '<span class="badge badge-amber">Loyalty</span>';
-    
+
     const milestoneText = isSalary
       ? `${item.milestone}-year Salary Adjustment`
       : `${item.milestone}-year ${item.milestone % 10 === 0 ? 'Loyalty Award' : 'Milestone'}`;
@@ -710,7 +744,7 @@ function closeDismissAllModalOutside(e) {
 function dismissAllNotifs(type = 'all') {
   const notifs = getNotifications();
   let changed = false;
-  
+
   notifs.forEach(n => {
     if (!n.dismissed && !dismissed.includes(n.key)) {
       let match = false;
@@ -845,7 +879,7 @@ function confirmRestoreAll(type = 'all') {
     dismissed = dismissed.filter(key => {
       const n = notifs.find(x => x.key === key);
       if (!n) return true; // keep if it doesn't exist
-      
+
       let match = false;
       if (type === 'loyalty' && n.type === 'milestone' && n.ntype !== 'salary') match = true;
       else if (type === 'salary' && n.type === 'milestone' && n.ntype === 'salary') match = true;
@@ -872,7 +906,7 @@ function closeClearHistoryModalOutside(e) {
 }
 function confirmClearHistory(type = 'all') {
   const notifs = getNotifications();
-  
+
   notifs.forEach(n => {
     if (n.dismissed && !deletedNotifs.includes(n.key)) {
       let match = false;
@@ -1004,10 +1038,10 @@ function submitDemote() {
       emp.lastPromotionDateHistory.pop();
       emp.lastPromotionDate = emp.lastPromotionDateHistory.length > 0 ? emp.lastPromotionDateHistory[emp.lastPromotionDateHistory.length - 1] : '';
     }
-    
+
     // Reset the 3 year timer to the specified demotion date
     emp.stepIncrementBaseDate = demoteDate;
-    
+
     saveEmployees(employees);
     renderAll();
   }
@@ -1231,7 +1265,7 @@ function openEditModal(id) {
   document.getElementById('editDate').value = emp.startDate || '';
   document.getElementById('editSalary').value = emp.currentSalary || '';
   document.getElementById('editModal').style.display = 'flex';
-  
+
   const modalBody = document.querySelector('#editModal .modal-body');
   if (modalBody) modalBody.scrollTop = 0;
 }
@@ -1695,7 +1729,9 @@ function toggleSidebar() {
 // ─── Init ────────────────────────────────────────────────────────────────────
 
 initTheme();
-renderAll();
+loadDataFromAPI().then(() => {
+  renderAll();
+});
 
 // ─── Scroll to Top ──────────────────────────────────────────────────────────
 
