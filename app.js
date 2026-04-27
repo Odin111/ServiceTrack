@@ -3,7 +3,7 @@
 const STORAGE_KEY = 'servicetrack_employees';
 const DISMISSED_KEY = 'servicetrack_dismissed';
 const PERMANENT_DELETED_KEY = 'servicetrack_deleted';
-const API_URL = 'http://localhost:3001/api/sync';
+const API_URL = '/api/sync';
 
 let employees = [];
 let dismissed = [];

@@ -4,8 +4,8 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-// Using port 3001 so it doesn't conflict with Rating System on 3000
-const PORT = 3001;
+// Use process.env.PORT for Render deployment, fallback to 3001 locally
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 // Need high limit because employee list with base64 images could get large
